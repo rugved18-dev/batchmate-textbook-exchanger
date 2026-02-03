@@ -1,0 +1,71 @@
+# Batchmate - Startup Commands
+# ==============================
+# Run these commands in separate terminals
+
+# ============================================
+# TERMINAL 1: Backend Server
+# ============================================
+
+cd "d:\New folder (4)\Batchmate Textbook Exchanger\backend"
+npm install
+npm run dev
+
+# Backend will run on: http://localhost:5000
+
+
+# ============================================
+# TERMINAL 2: Frontend Server
+# ============================================
+
+cd "d:\New folder (4)\Batchmate Textbook Exchanger\frontend"
+npm install
+npm run dev
+
+# Frontend will run on: http://localhost:3000
+
+
+# ============================================
+# OPTIONAL: Seed Sample Data (run once)
+# ============================================
+
+cd "d:\New folder (4)\Batchmate Textbook Exchanger\backend"
+npm run seed
+
+
+# ============================================
+# QUICK RESTART COMMANDS
+# ============================================
+
+# If you need to restart:
+# 1. Press Ctrl+C in the terminal to stop the server
+# 2. Run the start command again:
+
+# Backend:
+cd "d:\New folder (4)\Batchmate Textbook Exchanger\backend"
+npm run dev
+
+# Frontend:
+cd "d:\New folder (4)\Batchmate Textbook Exchanger\frontend"
+npm run dev
+
+
+# ============================================
+# BEFORE FIRST RUN - Environment Setup
+# ============================================
+
+# Backend .env file (create at backend/.env):
+# PORT=5000
+# NODE_ENV=development
+# MONGODB_URI=mongodb://localhost:27017/batchmate
+# JWT_SECRET=your-super-secret-jwt-key
+# JWT_EXPIRES_IN=1d
+# JWT_REFRESH_SECRET=your-refresh-secret
+# JWT_REFRESH_EXPIRES_IN=7d
+# GOOGLE_CLIENT_ID=your-google-client-id
+# CLOUDINARY_CLOUD_NAME=your-cloud-name
+# CLOUDINARY_API_KEY=your-api-key
+# CLOUDINARY_API_SECRET=your-api-secret
+# FRONTEND_URL=http://localhost:3000
+
+# Frontend .env file (create at frontend/.env):
+# VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com

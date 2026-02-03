@@ -6,6 +6,11 @@ const mongoose = require('mongoose');
  */
 
 const connectDB = async () => {
+    // If already connected, use the existing connection
+    if (mongoose.connection.readyState >= 1) {
+        return;
+    }
+
     try {
         const options = {
             maxPoolSize: 10,
