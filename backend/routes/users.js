@@ -8,6 +8,9 @@ const { validate, userSchemas } = require('../middleware/validation');
 // Leaderboard
 router.get('/leaderboard', authenticate, userController.getLeaderboard);
 
+// Analytics (dashboard charts) — must be before /:id
+router.get('/analytics', authenticate, userController.getAnalytics);
+
 // Blocked users
 router.get('/blocked', authenticate, userController.getBlockedUsers);
 

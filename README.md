@@ -1,208 +1,109 @@
-# 🎓 Batchmate - Campus Textbook & Notes Exchange
+# 🎓 Batchmate — Campus Textbook & Notes Exchange
 
-A modern full-stack platform for college students to exchange textbooks and share handwritten notes with their campus community.
+A modern full-stack platform for college students to exchange textbooks, share handwritten notes, and build a trusted campus community.
 
-![Status](https://img.shields.io/badge/Status-MVP%20Ready-brightgreen)
-![Tech Stack](https://img.shields.io/badge/React-18-61DAFB?logo=react)
-![Tech Stack](https://img.shields.io/badge/Node.js-Express-339933?logo=node.js)
-![Tech Stack](https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb)
-![Tech Stack](https://img.shields.io/badge/Tailwind-CSS-06B6D4?logo=tailwindcss)
+![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)
+![Node](https://img.shields.io/badge/Node.js-Express-339933?logo=node.js)
+![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb)
 ![Auth](https://img.shields.io/badge/Auth-Google%20OAuth-4285F4?logo=google)
-![Backend](https://img.shields.io/badge/Backend-100%25%20Complete-brightgreen)
-![Frontend](https://img.shields.io/badge/Frontend-100%25%20Complete-brightgreen)
+![Socket.io](https://img.shields.io/badge/Realtime-Socket.io-black?logo=socket.io)
+![AI](https://img.shields.io/badge/AI-Gemini%20%2F%20Grok-blueviolet?logo=google)
+![License](https://img.shields.io/badge/License-MIT-blue)
 
 ---
 
 ## 🎯 Project Overview
 
-**Batchmate** is a campus-specific marketplace where students can:
-- 📝 **Share Notes** - Upload handwritten class notes and earn reputation points
-- 📚 **Exchange Books** - Buy/sell textbooks with smart pricing (40-60% of MRP)
-- 💬 **Chat Safely** - Direct messaging between buyers and sellers
-- 🏆 **Build Reputation** - Earn karma through contributions and helpful reviews
-- 🛡️ **Moderate Together** - Community-driven content moderation
+**Batchmate** is a campus-restricted marketplace where students can:
 
-**Authentication**: Google OAuth (college email only - `.edu` or `.ac.in` domains)
+- 📝 **Share Notes** — Upload handwritten class notes and earn reputation points
+- 📚 **Exchange Books** — Buy/sell textbooks with AI-assisted smart pricing (40–60% of MRP)
+- 💬 **Chat Safely** — Real-time direct messaging between buyers and sellers via Socket.io
+- 🤖 **AI Summariser** — Get instant Gemini-powered summaries of any uploaded note PDF
+- ⭐ **Badge System** — Earn Verified Seller, Top Contributor, and Pro Tutor badges
+- 🌟 **Seller Reviews** — Rate sellers after a book transaction; reviews shown on their profile
+- 🔍 **Smart Search** — Multi-layered search (MongoDB full-text → regex → fuzzy re-ranking)
+- 🔔 **Real-time Notifications** — Live alerts via Socket.io for messages, votes, and sales
+- 🏆 **Reputation Engine** — Earn karma through contributions and helpful reviews
+- 👑 **Admin Dashboard** — Full platform management: users, notes, books, reports with live stats
+- 🛡️ **Moderation** — Community-driven + admin-controlled content moderation
+
+**Authentication**: Google OAuth — college email only (`.edu` or `.ac.in` domains)
 
 ---
 
-## ✨ Key Features
+## ✨ Feature Breakdown
 
 ### 📝 Notes Module
-- Upload handwritten notes (PDF only)
-- Mandatory handwritten confirmation
-- Upvote/Downvote system
-- Auto-hide notes with score <= -5
-- Delayed reward points (3 upvotes OR 1 download = 5 pts)
-- Preview thumbnails
+- Upload handwritten note PDFs (Cloudinary storage)
+- Mandatory handwritten confirmation checkbox
+- Upvote / Downvote system with one-vote-per-user enforcement
+- Auto-hide after vote score ≤ −5
+- Reputation reward: 5 pts after 3 upvotes OR 1 download
+- Preview thumbnails generated on upload
+- **🤖 AI Note Summariser** — Gemini API generates a structured summary of the PDF; cached for 24 hours
 
-### 📚 Book Exchange
-- List textbooks with photos
-- Automatic price suggestion (40-60% of MRP)
-- Condition tracking (Like New, Good, Fair, Acceptable)
-- Request a Book feature (cold start solution)
-- Preferred meetup locations
+### 📚 Books Module
+- List textbooks with up to 5 Cloudinary-hosted photos
+- Smart price suggestion (40–60% of MRP based on condition)
+- Condition grading: Like New / Good / Fair / Acceptable
+- Preferred meetup location list
+- Mark as Sold workflow
+- **Book Request** feature for cold-start (no available copy yet)
 
-### 💬 Safe Chat System
-- Chat only between buyer & seller
+### 💬 Real-time Chat
+- Socket.io powered messaging (seen in real time)
+- Chat restricted to buyer ↔ seller pairs
 - Predefined message templates
-- Rate limiting for new users
-- Block & report functionality
+- Rate limiting for new accounts
+- Block & report from within chat
+- Unread badge count synced across tabs via Socket.io
 
-### 🛡️ Moderation
-- Report notes, books, or users
-- Auto-hide after 3 reports
-- Community moderators (high reputation)
-- Admin dashboard
+### 🔍 Smart Search (Notes)
+Five-step search pipeline:
+1. Find uploaders whose name matches the query
+2. Build a regex OR clause for fallback
+3. Attempt MongoDB `$text` index search (stemmed, diacritic-insensitive)
+4. Fall back to regex if text search returns nothing
+5. Union results with uploader-name matches
++ Client-side **Fuse.js** fuzzy re-ranking with search mode indicator
 
-### 🔐 Authentication & Registration
-- **Google OAuth** - One-click sign-in with college email
-- **Two-Stage Registration** - OAuth verification + Department/Semester form
-- **JWT Sessions** - Access & refresh token system (7-day expiration)
-- **Role-Based Access** - User, Moderator, Admin roles with escalating permissions
-- **Same-Campus Community** - Connect with students in your college only
+### ⭐ Badge System (computed on-the-fly)
+| Badge | Trigger |
+|---|---|
+| ⭐ Verified Seller | 3+ books sold |
+| 🥇 Top Contributor | 50+ reputation points |
+| 💎 Pro Tutor | 10+ upvoted notes |
+| 👑 Admin | role = admin |
+| 🛡️ Moderator | role = moderator |
 
----
+Badges show on **Profile** page and **BookDetail** seller card.
 
-## 📁 Project Structure
+### 🌟 Seller Ratings & Reviews
+- After a book is marked "sold", buyers see a ★★★★★ review form in BookDetail
+- One review per transaction (idempotent upsert)
+- Average seller rating shown as a badge chip everywhere badges appear
+- Full review list on seller's **Profile → Reviews** tab
+- Self-review blocked server-side
 
-```
-Batchmate Textbook Exchanger/
-├── backend/                 # Node.js + Express API
-│   ├── config/              # Database configuration
-│   ├── controllers/         # Request handlers
-│   ├── middleware/          # Auth, validation, rate limiting
-│   ├── models/              # Mongoose schemas
-│   ├── routes/              # API endpoints
-│   ├── scripts/             # Seed data
-│   ├── utils/               # Cloudinary, JWT helpers
-│   └── server.js            # Entry point
-│
-├── frontend/                # React + Tailwind CSS
-│   ├── public/              # Static assets
-│   └── src/
-│       ├── components/      # Reusable UI components
-│       ├── context/         # Auth context
-│       ├── pages/           # Page components
-│       └── utils/           # API client, helpers
-│
-└── README.md
-```
+### 🔔 Notification System
+- Real-time Socket.io notifications (new message, upvote, book interested, sale)
+- Notification bell in navbar with unread count badge
+- Mark as read individually or all-at-once
 
----
+### 👑 Admin Dashboard (`/admin`)
+Protected by `requireAdmin` middleware. Five tabs:
 
-## � Getting Started in 5 Minutes
+| Tab | Capabilities |
+|---|---|
+| Overview | 8 stat cards + 30-day signup bar chart |
+| Users | Search, filter by role/blocked, block/unblock, promote/demote |
+| Notes | Approve / hide / flag with thumbnail preview |
+| Books | Search, filter by status, remove listings |
+| Reports | Filter by status, resolve / dismiss |
 
-### Prerequisites
-- Node.js 18+
-- MongoDB (local or [MongoDB Atlas](https://www.mongodb.com/cloud/atlas))
-- [Google OAuth 2.0 Credentials](https://console.cloud.google.com/)
-- [Cloudinary Account](https://cloudinary.com/) (for file storage)
-
-### Step 1: Clone Repository
-```bash
-git clone https://github.com/yourusername/batchmate.git
-cd 'Batchmate Textbook Exchanger'
-```
-
-### Step 2: Install Dependencies
-```bash
-# Backend
-cd backend
-npm install
-
-# Frontend (new terminal)
-cd frontend
-npm install
-```
-
-### Step 3: Configure Environment Variables
-
-**Backend** (`backend/.env`):
-```env
-# Server
-NODE_ENV=development
-PORT=5000
-
-# Database (MongoDB Atlas recommended)
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/batchmate?retryWrites=true&w=majority
-
-# JWT Tokens (⚠️ Change these in production!)
-JWT_SECRET=batchmate_super_secret_jwt_key_change_in_production
-JWT_REFRESH_SECRET=batchmate_refresh_secret_key_change_in_production
-JWT_EXPIRE=7d
-
-# Google OAuth (get from Google Cloud Console)
-GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-client-secret
-
-# Cloudinary (for PDF & image uploads)
-CLOUDINARY_CLOUD_NAME=your-cloud-name
-CLOUDINARY_API_KEY=your-api-key
-CLOUDINARY_API_SECRET=your-api-secret
-```
-
-**Frontend** (`frontend/.env`):
-```env
-# Must match backend GOOGLE_CLIENT_ID exactly!
-VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-```
-
-⚠️ **CRITICAL**: Both `.env` files must have **identical** `GOOGLE_CLIENT_ID` values.
-
-### Step 4: Start Servers
-
-**Terminal 1 - Backend:**
-```bash
-cd backend
-npm start
-```
-✅ Should show: `✅ MongoDB Connected` and `🎓 Batchmate API Server` on port 5000
-
-**Terminal 2 - Frontend:**
-```bash
-cd frontend
-npm run dev
-```
-✅ Should show: `VITE v5.x.x ready in XXX ms` on http://localhost:3000
-
-### Step 5: Test the Application
-1. Open http://localhost:3000 in your browser
-2. Click "Sign in with Google"
-3. Use a college email (ending in `.edu` or `.ac.in`)
-4. Fill in Department, Semester, and Campus on the registration form
-5. Should redirect to Dashboard ✅
-
----
-
-## 📖 Authentication Flow (NEW)
-
-### Google OAuth Registration Flow
-
-```
-Login Page
-    ↓
-User clicks "Sign in with Google"
-    ↓
-Google OAuth Dialog (college email selection)
-    ↓
-Backend verifies token & email domain (.edu or .ac.in)
-    ↓
-NEW USER? → Registration Form (Department, Semester, Campus)
-    ↓
-Submit Registration → Create User → JWT Tokens Generated
-    ↓
-Dashboard ✅
-```
-
-**Key Points:**
-- ✅ College emails only (`.edu` or `.ac.in` domains)
-- ✅ Two-stage registration for new users (OAuth + form)
-- ✅ Auto-verified (no email confirmation needed)
-- ✅ Immediate dashboard access after registration
-
-**For Developers Sharing with AI:**  
-See [PROJECT_CONTEXT_FOR_AI.md](PROJECT_CONTEXT_FOR_AI.md) for complete architecture details!
+Accessible only when `user.role === 'admin'`. Shows a 👑 button in the navbar.
 
 ---
 
@@ -212,429 +113,386 @@ See [PROJECT_CONTEXT_FOR_AI.md](PROJECT_CONTEXT_FOR_AI.md) for complete architec
 Batchmate Textbook Exchanger/
 │
 ├── 📂 backend/
-│   ├── config/database.js           # MongoDB connection
-│   ├── models/                      # Mongoose schemas (User, Note, Book, Chat, Report, etc)
-│   ├── controllers/                 # Business logic (auth, notes, books, chat, users, reports)
-│   ├── routes/                      # API endpoint definitions
-│   ├── middleware/                  # Auth, RBAC, validation, rate limiting, error handling
-│   ├── utils/cloudinary.js          # File upload integration
-│   ├── .env                         # Environment configuration
-│   ├── server.js                    # Entry point
-│   └── package.json
+│   ├── config/
+│   │   └── database.js             # MongoDB connection
+│   ├── controllers/
+│   │   ├── authController.js       # Google OAuth login & registration
+│   │   ├── noteController.js       # Notes CRUD + smart search + voting
+│   │   ├── bookController.js       # Books CRUD + sold workflow
+│   │   ├── chatController.js       # Conversations & messages
+│   │   ├── userController.js       # Profile, leaderboard, blocking
+│   │   ├── reportController.js     # Community reports
+│   │   ├── notificationController.js
+│   │   ├── notificationHelper.js   # Socket.io notification emitter
+│   │   ├── aiController.js         # Gemini PDF summariser
+│   │   ├── adminController.js      # Admin dashboard endpoints
+│   │   └── reviewController.js     # Seller reviews & badge stats
+│   ├── middleware/
+│   │   ├── auth.js                 # JWT authenticate + optionalAuth
+│   │   ├── adminAuth.js            # requireAdmin guard
+│   │   ├── errorHandler.js         # AppError + asyncHandler
+│   │   └── rateLimiter.js
+│   ├── models/
+│   │   ├── User.js
+│   │   ├── Note.js
+│   │   ├── Book.js
+│   │   ├── BookRequest.js
+│   │   ├── Vote.js
+│   │   ├── Report.js
+│   │   ├── Chat.js
+│   │   ├── Message.js
+│   │   ├── Notification.js
+│   │   ├── SellerReview.js         # NEW — seller ratings
+│   │   └── index.js                # Central re-export
+│   ├── routes/
+│   │   ├── auth.js
+│   │   ├── notes.js
+│   │   ├── books.js
+│   │   ├── chat.js
+│   │   ├── users.js
+│   │   ├── reports.js
+│   │   ├── notifications.js
+│   │   ├── admin.js
+│   │   └── reviews.js              # NEW — badges + reviews
+│   ├── utils/
+│   │   ├── cloudinary.js           # Upload helpers
+│   │   ├── jwt.js                  # Token generation & verification
+│   │   └── badges.js               # NEW — badge computation logic
+│   ├── .env                        # Environment variables
+│   └── server.js                   # Express + Socket.io entry point
 │
-├── 📂 frontend/
-│   ├── src/
-│   │   ├── components/              # Reusable UI components (Navbar, Cards, Sidebar, etc)
-│   │   ├── pages/                   # Full pages (Login, Dashboard, Notes, Books, Chat, etc)
-│   │   ├── context/AuthContext.jsx # Authentication state management
-│   │   ├── utils/
-│   │   │   ├── api.js              # Axios client with interceptors
-│   │   │   └── helpers.js          # Constants & formatting functions
-│   │   ├── App.jsx                 # Router & protected routes
-│   │   ├── main.jsx                # React entry point
-│   │   └── index.css               # Global styles + Tailwind
-│   ├── public/                      # Static assets
-│   ├── .env                         # Google Client ID configuration
-│   ├── vite.config.js              # Vite build configuration
-│   ├── tailwind.config.js          # Tailwind theme customization
-│   └── package.json
+├── 📂 frontend/src/
+│   ├── components/
+│   │   ├── Navbar.jsx              # With admin 👑 link & notification bell
+│   │   ├── NoteCard.jsx
+│   │   ├── BookCard.jsx
+│   │   ├── FilterSidebar.jsx
+│   │   ├── LoadingSpinner.jsx
+│   │   ├── EmptyState.jsx
+│   │   ├── Layout.jsx
+│   │   ├── NotificationBell.jsx    # Real-time bell with dropdown
+│   │   └── BadgeReview.jsx         # NEW — BadgeChip, BadgeRow, ReviewForm, ReviewList
+│   ├── pages/
+│   │   ├── Landing.jsx
+│   │   ├── Login.jsx
+│   │   ├── CompleteRegistration.jsx
+│   │   ├── Dashboard.jsx
+│   │   ├── Notes.jsx               # Fuzzy search + Fuse.js re-ranking
+│   │   ├── NoteDetail.jsx          # With AI Summary panel
+│   │   ├── UploadNote.jsx
+│   │   ├── Books.jsx
+│   │   ├── BookDetail.jsx          # With BadgeRow + ReviewForm + ReviewList
+│   │   ├── ListBook.jsx            # With smart price prediction band
+│   │   ├── Chat.jsx
+│   │   ├── Profile.jsx             # With BadgeRow + Reviews tab
+│   │   ├── AdminDashboard.jsx      # Full 5-tab admin panel
+│   │   └── NotFound.jsx
+│   ├── context/
+│   │   └── AuthContext.jsx         # Auth state + socket integration
+│   └── utils/
+│       ├── api.js                  # Axios client with JWT interceptors
+│       ├── socket.js               # Socket.io client singleton
+│       └── helpers.js              # Constants, formatters, BRANCHES, etc.
 │
-├── 📄 README.md                     # This file
-├── 📄 PROJECT_CONTEXT_FOR_AI.md    # **Complete project documentation for AI tools**
-├── SETUP_GUIDE.md                  # Detailed setup instructions
-├── IMPLEMENTATION_STATUS.md        # Feature completion checklist
-└── GOOGLE_OAUTH_FIX.md            # OAuth troubleshooting guide
+└── README.md
 ```
 
 ---
 
-## 🌐 API Endpoints
+## 🌐 API Reference
 
 ### Authentication
-| Method | Endpoint | Auth | Purpose |
-|--------|----------|------|---------|
-| POST | `/api/auth/google` | ❌ | **NEW** - Google OAuth login |
-| POST | `/api/auth/complete-registration` | ❌ | **NEW** - Submit department/semester form |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/auth/google` | ❌ | Google OAuth login (college email only) |
+| POST | `/api/auth/complete-registration` | ❌ | Submit department/semester after first OAuth |
 | POST | `/api/auth/refresh` | ❌ | Refresh access token |
-| GET | `/api/auth/me` | ✅ | Get current user info |
-| POST | `/api/auth/logout` | ✅ | Logout user |
+| GET | `/api/auth/me` | ✅ | Get current authenticated user |
+| POST | `/api/auth/logout` | ✅ | Logout (clears client tokens) |
 
 ### Notes
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | `/api/notes` | ❌ | List notes with filters (department, semester, sort) |
-| GET | `/api/notes/:id` | ❌ | Get single note details |
-| POST | `/api/notes` | ✅ | Upload new note (PDF + metadata) |
+| GET | `/api/notes` | ❌ | List notes with smart search & filters |
+| GET | `/api/notes/:id` | ❌ | Get single note |
+| POST | `/api/notes` | ✅ | Upload note (PDF + metadata) |
 | POST | `/api/notes/:id/upvote` | ✅ | Upvote note |
 | POST | `/api/notes/:id/downvote` | ✅ | Downvote note |
 | GET | `/api/notes/:id/download` | ✅ | Download PDF & increment counter |
-| DELETE | `/api/notes/:id` | ✅ | Delete note (owner/moderator) |
+| DELETE | `/api/notes/:id` | ✅ | Delete note (owner / moderator) |
+| POST | `/api/notes/:id/summarize` | ✅ | Generate / fetch AI summary (Gemini) |
 
 ### Books
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | `/api/books` | ❌ | List books with filters (price, condition, department) |
-| GET | `/api/books/:id` | ❌ | Get book details & images |
-| POST | `/api/books` | ✅ | List book for sale |
-| PUT | `/api/books/:id` | ✅ | Update book details (seller only) |
-| DELETE | `/api/books/:id` | ✅ | Delete listing (seller/moderator) |
-| POST | `/api/books/:id/request` | ✅ | Request book (cold start feature) |
-| GET | `/api/books/requests/pending` | ✅ | Get pending requests for user's books |
+| GET | `/api/books` | ❌ | List books with filters |
+| GET | `/api/books/:id` | ❌ | Get book details |
+| POST | `/api/books` | ✅ | Create listing |
+| PUT | `/api/books/:id` | ✅ | Update listing (seller only) |
+| DELETE | `/api/books/:id` | ✅ | Delete listing (seller / moderator) |
+| POST | `/api/books/:id/sold` | ✅ | Mark book as sold |
+| POST | `/api/books/:id/request` | ✅ | Request a book (cold-start feature) |
 
 ### Chat
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | `/api/chat` | ✅ | List user's conversations |
-| GET | `/api/chat/:id/messages` | ✅ | Get messages in conversation |
-| POST | `/api/chat/:id/messages` | ✅ | Send message (with optional template) |
-| POST | `/api/chat/:id/block` | ✅ | Block user in chat |
-| GET | `/api/chat/unread-count` | ✅ | Get total unread messages |
+| GET | `/api/chat` | ✅ | List conversations |
+| POST | `/api/chat` | ✅ | Start conversation (buyer → seller) |
+| GET | `/api/chat/:id/messages` | ✅ | Get messages |
+| POST | `/api/chat/:id/messages` | ✅ | Send message |
+| POST | `/api/chat/:id/block` | ✅ | Block user in this chat |
+| GET | `/api/chat/unread-count` | ✅ | Badge count for navbar |
 
-### Reports
+### Reviews & Badges
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/api/reports` | ✅ | Report note/book/user |
-| GET | `/api/reports` | ✅🔒 | List reports (moderator+) |
-| PUT | `/api/reports/:id` | ✅🔒 | Review report & take action |
-| GET | `/api/reports/stats` | ✅🔒 | Report statistics (admin) |
+| GET | `/api/reviews/badges/:userId` | ❌ | Get user badges + avg seller rating |
+| GET | `/api/reviews/seller/:sellerId` | ❌ | List all reviews for a seller |
+| GET | `/api/reviews/can-review/:bookId` | ✅ | Check if current user can review |
+| POST | `/api/reviews` | ✅ | Submit / update a seller review |
 
-### Users
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/api/users/:id` | ❌ | Get user profile & stats |
-| PUT | `/api/users/profile` | ✅ | Update own profile |
-| GET | `/api/users/leaderboard` | ❌ | Top reputation users |
-| POST | `/api/users/:id/block` | ✅ | Block user |
-| GET | `/api/users/:id/notes` | ❌ | User's uploaded notes |
-| GET | `/api/users/:id/books` | ❌ | User's books for sale |
-
----
-
-## 🎨 Frontend Pages & Components
-
-### Pages (13 total)
-- **Landing.jsx** - Hero page with features showcase
-- **Login.jsx** - Google OAuth sign-in interface ⭐ NEW
-- **CompleteRegistration.jsx** - Department/Semester form ⭐ NEW (Feb 2, 2026)
-- **Dashboard.jsx** - Stats, popular notes, recent books overview
-- **Notes.jsx** - Browse & filter notes
-- **NoteDetail.jsx** - View single note, vote, download
-- **UploadNote.jsx** - Submit new note
-- **Books.jsx** - Browse & filter books
-- **BookDetail.jsx** - View book, contact seller, request
-- **ListBook.jsx** - Sell a textbook
-- **Chat.jsx** - Messaging interface
-- **Profile.jsx** - User profile & stats
-- **NotFound.jsx** - 404 error page
-
-### Reusable Components
-- **Navbar** - Navigation + profile dropdown
-- **NoteCard** - Note preview with stats
-- **BookCard** - Book listing with discount badge
-- **FilterSidebar** - Department, semester, price filters
-- **LoadingSpinner** - Loading states
-- **EmptyState** - No data states
-- **Layout** - Main page wrapper
+### Admin (all require `role: "admin"`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/admin/stats` | Platform overview + 30-day signup chart |
+| GET | `/api/admin/users` | Paginated user list with filters |
+| PATCH | `/api/admin/users/:id/block` | Toggle block/unblock |
+| PATCH | `/api/admin/users/:id/role` | Change role |
+| GET | `/api/admin/notes` | Paginated notes |
+| PATCH | `/api/admin/notes/:id/moderate` | approve / hide / flag |
+| GET | `/api/admin/books` | Paginated book listings |
+| DELETE | `/api/admin/books/:id` | Remove listing |
+| GET | `/api/admin/reports` | Paginated reports |
+| PATCH | `/api/admin/reports/:id/resolve` | resolve / dismiss |
 
 ---
 
-## 🗄️ Database Models (8 Collections)
+## 🗄️ Data Models (10 Collections)
 
-### User
-```javascript
-{
-  googleId: String,         // Unique OAuth ID
-  email: String,            // College email (unique)
-  name: String,             // Full name
-  department: String,       // CS, ECE, Mechanical, etc
-  semester: Number,         // 1-8
-  campus: String,           // Campus name
-  reputation: Number,       // Karma points
-  role: String,             // user | moderator | admin
-  blockedUsers: [ObjectId], // Users blocked by this user
-  verified: Boolean,        // Auto-true for OAuth
-  createdAt: Date
-}
-```
-
-### Note
-```javascript
-{
-  title: String,            // Note title
-  uploader: ObjectId,       // References User
-  fileUrl: String,          // Cloudinary PDF URL
-  thumbnailUrl: String,     // Preview image
-  department: String,       // Course department
-  semester: Number,         // Course semester
-  handwrittenVerified: Boolean,  // Moderation flag
-  upvotes: Number,          // Upvote count
-  downvotes: Number,        // Downvote count
-  downloadCount: Number,    // Download counter
-  reward: Number,           // Points awarded (5 pts after threshold)
-  status: String,           // active | hidden
-  reportCount: Number,      // Auto-hide at 3 reports
-  createdAt: Date
-}
-```
-
-### Book
-```javascript
-{
-  title: String,            // Book title
-  author: String,           // Author name
-  mrp: Number,              // Original price
-  sellingPrice: Number,     // 40-60% of MRP
-  isbn: String,             // ISBN identifier
-  condition: String,        // Like New | Good | Fair | Acceptable
-  images: [String],         // Cloudinary URLs
-  seller: ObjectId,         // References User
-  department: String,       // Department
-  semester: Number,         // Semester
-  meetupLocations: [String],// Meeting spots
-  isAvailable: Boolean,     // Not sold
-  status: String,           // active | sold | hidden
-  reportCount: Number,      // Auto-hide at 3 reports
-  createdAt: Date
-}
-```
-
-### Chat
-```javascript
-{
-  participants: [ObjectId], // Buyer & Seller (2 users)
-  lastMessage: {
-    text: String,
-    sender: ObjectId,
-    timestamp: Date
-  },
-  blockedBy: [ObjectId],    // Users who blocked
-  createdAt: Date,
-  messages: [ObjectId]      // References Message collection
-}
-```
-
-### Message
-```javascript
-{
-  chat: ObjectId,           // References Chat
-  sender: ObjectId,         // References User
-  receiver: ObjectId,       // References User
-  text: String,             // Message content
-  template: String,         // Pre-defined template (optional)
-  readAt: Date,             // Null if unread
-  deletedFor: [ObjectId],   // Users who deleted locally
-  createdAt: Date
-}
-```
-
-### Vote
-```javascript
-{
-  note: ObjectId,           // References Note
-  user: ObjectId,           // References User
-  type: String,             // upvote | downvote
-  createdAt: Date           // Ensures one vote per user per note
-}
-```
-
-### Report
-```javascript
-{
-  reporter: ObjectId,       // References User (who reported)
-  reportedItem: ObjectId,   // Note, Book, or User ID
-  itemType: String,         // Note | Book | User
-  reason: String,           // Report category
-  description: String,      // Detailed reason
-  status: String,           // pending | reviewed | resolved | dismissed
-  action: String,           // Admin action taken
-  createdAt: Date,
-  updatedAt: Date
-}
-```
-
-### BookRequest
-```javascript
-{
-  requester: ObjectId,      // References User (wants book)
-  bookTitle: String,        // Book they're looking for
-  author: String,           // Author (optional)
-  department: String,       // Department
-  semester: Number,         // Semester
-  status: String,           // pending | fulfilled | cancelled
-  createdAt: Date
-}
-```
+| Model | Key Fields |
+|-------|-----------|
+| **User** | googleId, email, name, department, semester, campus, reputationScore, role (user/moderator/admin), isBlocked |
+| **Note** | title, subject, subjectCode, uploadedBy, fileUrl, thumbnailUrl, voteScore, downloadCount, aiSummary, status |
+| **Book** | title, author, mrp, finalPrice, condition, images, listedBy, campus, status (available/reserved/sold/removed) |
+| **BookRequest** | requester, bookTitle, department, semester, status |
+| **Vote** | note, user, type (upvote/downvote) — unique index per note+user |
+| **Report** | reporter, reportedItem, itemType, reason, status, action |
+| **Chat** | participants[2], lastMessage, blockedBy |
+| **Message** | chat, sender, receiver, text, template, readAt |
+| **Notification** | recipient, type, message, relatedId, isRead |
+| **SellerReview** | book, seller, reviewer, rating (1–5), comment — unique index per book+reviewer |
 
 ---
 
-## 🎨 Design System
+## 🚀 Getting Started
 
-The frontend uses a custom design system with:
-- **Color Palette**: Primary (Sky Blue - `#0EA5E9`), Accent (Pink/Purple - `#EC4899`)
-- **Theme**: Dark mode by default with glassmorphism cards
-- **Typography**: Inter font family, hierarchical heading sizes
-- **Animations**: Float, glow, slide-up, fade-in custom animations
-- **Spacing**: Tailwind default scale with dark-100 through dark-300 backgrounds
-- **Components**: Glass cards with border opacity, gradient buttons, badge system
+### Prerequisites
+- **Node.js 18+**
+- **MongoDB** (local or [MongoDB Atlas](https://www.mongodb.com/cloud/atlas))
+- **Google OAuth 2.0** credentials ([Cloud Console](https://console.cloud.google.com/))
+- **Cloudinary** account (PDF & image uploads)
+- *(Optional)* **Gemini API key** for AI note summaries
+- *(Optional)* **Grok/xAI API key** if you want smart search AI features
+
+### Step 1 — Clone
+```bash
+git clone https://github.com/yourusername/batchmate.git
+cd "Batchmate Textbook Exchanger"
+```
+
+### Step 2 — Install Dependencies
+```bash
+# Backend
+cd backend && npm install
+
+# Frontend (new terminal)
+cd frontend && npm install
+```
+
+### Step 3 — Configure Environment
+
+**`backend/.env`**
+```env
+# Server
+NODE_ENV=development
+PORT=5000
+FRONTEND_URL=http://localhost:5173
+
+# Database
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/batchmate
+
+# JWT (change in production!)
+JWT_SECRET=your_super_secret_jwt_key
+JWT_REFRESH_SECRET=your_refresh_secret_key
+JWT_EXPIRE=7d
+
+# Google OAuth
+GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-client-secret
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+
+# AI (optional)
+GEMINI_API_KEY=your-gemini-key
+GROK_API_KEY=your-grok-key
+```
+
+**`frontend/.env`**
+```env
+# Must match backend GOOGLE_CLIENT_ID exactly!
+VITE_GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com
+```
+
+> ⚠️ **Critical**: Both `.env` files must use the **same** `GOOGLE_CLIENT_ID`.
+
+### Step 4 — Run Locally
+
+```bash
+# Terminal 1 — Backend (port 5000)
+cd backend && npm run dev
+
+# Terminal 2 — Frontend (port 5173)
+cd frontend && npm run dev
+```
+
+Open **http://localhost:5173** and sign in with a college email.
+
+### Step 5 — Make Yourself Admin (optional)
+
+Run this in MongoDB Atlas or Compass:
+```js
+db.users.updateOne(
+  { email: "your-email@college.ac.in" },
+  { $set: { role: "admin" } }
+)
+```
+Log out and back in → the **👑 Admin** link appears in the navbar → go to `/admin`.
 
 ---
 
-## 🔒 Security Features
+## 🔒 Security
 
-- ✅ College email domain verification (regex: `.edu` or `.ac.in`)
-- ✅ JWT with refresh tokens (7-day expiration)
-- ✅ Rate limiting per endpoint (auth: 5/min, uploads: 10/hour, chat: 30/hour)
-- ✅ Input validation with Joi schemas
-- ✅ MongoDB query sanitization
+- ✅ College email domain validation (`.edu` / `.ac.in`)
+- ✅ Google token verified server-side via `google-auth-library`
+- ✅ JWT access tokens (short-lived) + refresh tokens (7-day)
+- ✅ Role-based access control (user / moderator / admin)
+- ✅ Rate limiting: auth (5/min), uploads (10/hr), chat (30/hr)
+- ✅ Joi schema validation on all inputs
+- ✅ MongoDB query sanitization (`express-mongo-sanitize`)
 - ✅ Helmet security headers
-- ✅ CORS properly configured
-- ✅ User blocking & chat blocking
-- ✅ Two-stage OAuth verification
+- ✅ CORS restricted to `FRONTEND_URL`
+- ✅ Admin routes double-guarded (`authenticate` + `requireAdmin`)
 
 ---
 
-## 📈 Reputation & Moderation System
+## 📈 Reputation System
 
-### Earning Reputation
+### Earning Points
 | Action | Points |
 |--------|--------|
-| Note uploaded & verified | +5 |
-| Note receives 3 upvotes | +5 |
+| Upload a note (verified) | +5 |
+| Note reaches 3 upvotes | +5 |
 | Book sold successfully | +10 |
-| Helpful review received | +2 |
 
-### Losing Reputation
-| Action | Points Lost |
-|--------|------------|
-| Content reported (confirmed) | -5 |
-| Per downvote on note | -1 |
-| Repeated violations | -10 |
+### Losing Points
+| Action | Points |
+|--------|--------|
+| Note downvoted | −1 per vote |
+| Content reported & confirmed | −5 |
 
-### Automatic Role Escalation
-- **Reputation 100+** → Automatically becomes **Moderator**
-- **Moderators** can: Review reports, hide content, warnings
-- **Admins** (manually assigned) → Full system access
-
-### Content Moderation
-- Users can report notes, books, or users
-- **Auto-hide** after 3 reports (pending review)
-- Moderators review and take action
-- Community-driven moderation system
+### Auto Role Escalation
+- **100+ reputation** → automatically becomes **Moderator**
+- **Moderators** can review reports and hide content
+- **Admins** are manually assigned via DB and have full dashboard access
 
 ---
 
-## 🛠️ Tech Stack Details
+## 🛠️ Tech Stack
 
-**Frontend (React 18 + Vite):**
-- ⚛️ React 18 with Hooks
-- 🚀 Vite for fast builds
-- 🎨 Tailwind CSS 3 + custom CSS
-- 🔀 React Router 6
-- 📡 Axios with interceptors
-- 🔔 React Hot Toast notifications
-- 🎭 Lucide Icons
-- 🔐 @react-oauth/google
+### Frontend
+| Library | Version | Purpose |
+|---------|---------|---------|
+| React | 18 | UI framework |
+| Vite | 5 | Build tool |
+| TailwindCSS | 3 | Styling |
+| React Router | 6 | Client routing |
+| Axios | 1.6 | HTTP client with JWT interceptors |
+| Socket.io-client | 4.8 | Real-time messaging & notifications |
+| Recharts | 3.7 | Admin charts |
+| Fuse.js | 7.1 | Client-side fuzzy search re-ranking |
+| Lucide React | 0.344 | Icon set |
+| React Hot Toast | 2.4 | Toast notifications |
+| @react-oauth/google | 0.12 | Google OAuth button |
 
-**Backend (Node.js + Express):**
-- 🟢 Node.js + Express.js
-- 🗄️ MongoDB + Mongoose ODM
-- 🔐 JWT Authentication
-- 📤 Cloudinary CDN + File Upload
-- ✔️ Joi Schema Validation
-- 📁 Multer File Handling
-- ⏱️ Express Rate Limiter
-- 🛡️ Helmet Security Headers
-- 🌐 CORS & Compression
+### Backend
+| Library | Version | Purpose |
+|---------|---------|---------|
+| Express | 4.18 | HTTP framework |
+| Mongoose | 8 | MongoDB ODM |
+| Socket.io | 4.8 | WebSocket server |
+| jsonwebtoken | 9 | JWT signing & verification |
+| google-auth-library | 9 | Google token verification |
+| @google/generative-ai | 0.24 | Gemini AI summaries |
+| openai | 6.22 | xAI / Grok API client |
+| Cloudinary | 1.41 | File upload & storage |
+| Multer | 1.4 | Multipart file handling |
+| Joi | 17 | Request validation |
+| Helmet | 7 | Security headers |
+| express-rate-limit | 7 | API rate limiting |
+| express-mongo-sanitize | 2.2 | Query injection prevention |
 
 ---
 
-## 📚 Documentation Files
-
-| File | Purpose |
-|------|---------|
-| **README.md** | This file - Quick start & overview |
-| **PROJECT_CONTEXT_FOR_AI.md** | Complete architecture for AI tools & debugging |
-
-**👉 Share `PROJECT_CONTEXT_FOR_AI.md` with ChatGPT or Claude for solving issues and debugging!**
-
----
-
-## 🚀 Quick Troubleshooting
+## 🐞 Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| "Invalid Google token" | Check GOOGLE_CLIENT_ID matches in both `.env` files |
-| Frontend shows blank page | Restart dev server (Ctrl+C, `npm run dev`) |
-| MongoDB connection failed | Verify MONGODB_URI in `.env` and network access |
-| CORS errors | Ensure Vite proxy is configured in `vite.config.js` |
-| Vite not loading .env changes | Restart dev server with `npm run dev` |
-| College email rejected | Use email ending in `.edu` or `.ac.in` only |
+| "Invalid Google token" | Ensure `GOOGLE_CLIENT_ID` is identical in both `.env` files |
+| College email rejected | Only `.edu` or `.ac.in` emails are accepted |
+| MongoDB connection failed | Check `MONGODB_URI` and Atlas IP whitelist |
+| CORS errors | Ensure `FRONTEND_URL=http://localhost:5173` in `backend/.env` |
+| Badges not showing | Verify `/api/reviews/badges/:userId` returns 200 |
+| Admin link not visible | Confirm `role: "admin"` in DB and re-login to refresh JWT |
+| AI summary not working | Add `GEMINI_API_KEY` to `backend/.env` |
+| Socket not connecting | Check that both servers share the same `FRONTEND_URL`/`PORT` |
 
 ---
 
 ## 🚀 Deployment (Vercel)
 
-The project is configured for easy deployment on **Vercel** as a unified full-stack application.
-
-### 1. Requirements
-- A **MongoDB Atlas** database (get the URI).
-- **Google Cloud Console** credentials (OAuth Client ID & Secret).
-- **Cloudinary** account (for image/PDF storage).
-
-### 2. Steps to Deploy
-1.  **Push** this project to a GitHub repository.
-2.  **Import** the repository into Vercel.
-3.  Vercel will detect the `vercel.json` and set up the builds.
-4.  **Add Environment Variables** in Vercel settings:
-    - `MONGODB_URI`
-    - `GOOGLE_CLIENT_ID` (Required for both Frontend & Backend)
-    - `GOOGLE_CLIENT_SECRET` (Backend only)
-    - `JWT_SECRET`
-    - `JWT_REFRESH_SECRET`
-    - `CLOUDINARY_CLOUD_NAME`
-    - `CLOUDINARY_API_KEY`
-    - `CLOUDINARY_API_SECRET`
-    - `NODE_ENV` = `production`
-5.  **Deploy!** Vercel will build the React frontend and deploy the Node.js backend as serverless functions.
+1. Push to GitHub
+2. Import repository in [Vercel](https://vercel.com)
+3. Add environment variables (all from `backend/.env` + `VITE_GOOGLE_CLIENT_ID`)
+4. Vercel will auto-detect and build both frontend and server
 
 ---
 
-## 📞 Support & Debugging
+## 🗺️ Roadmap
 
-- **Frontend/Backend Issues?** Check `PROJECT_CONTEXT_FOR_AI.md` for complete architecture
-- **Debugging?** Share `PROJECT_CONTEXT_FOR_AI.md` with ChatGPT or Claude
-- **Use the project context file** to solve small errors efficiently using console/tools
+- ✅ Google OAuth registration (2-stage)
+- ✅ Notes upload + voting + reputation
+- ✅ Books marketplace + smart pricing
+- ✅ Real-time chat (Socket.io)
+- ✅ Real-time notifications
+- ✅ AI note summariser (Gemini)
+- ✅ Smart search (full-text + fuzzy)
+- ✅ Badge system (on-the-fly computation)
+- ✅ Seller reviews & ratings
+- ✅ Admin dashboard (5-tab)
+- ⏳ Mobile app (React Native)
+- ⏳ Recommendation engine
+- ⏳ Email notifications for critical admin actions
 
 ---
 
 ## 📄 License
 
-MIT License - Feel free to use for your college projects!
-
----
-
-## 🙏 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
-## 🎯 Roadmap
-
-- ✅ MVP Backend (100%)
-- ✅ MVP Frontend (100%)
-- ✅ Google OAuth Registration (Feb 2, 2026)
-- 🔄 Dashboard Analytics (In Progress)
-- ⏳ Chat System (WebSocket integration)
-- ⏳ Advanced Moderation Panel
-- ⏳ Mobile App (React Native)
-- ⏳ Recommendation Engine
+MIT License — free to use for college projects and hackathons.
 
 ---
 
 **Built with ❤️ for college students**  
-*Last Updated: February 2, 2026*
+*Last Updated: February 22, 2026*

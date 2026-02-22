@@ -1,6 +1,7 @@
 const { Note, User, Vote, Report } = require('../models');
 const { uploadNotePDF, deleteFile, validatePDF } = require('../utils/cloudinary');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
+const { createNotification } = require('./notificationHelper');
 const fs = require('fs').promises;
 
 /**
@@ -102,61 +103,149 @@ const getNotes = asyncHandler(async (req, res) => {
         department,
         semester,
         subject,
+        search,
         sortBy = 'recent',
         page = 1,
         limit = 20
     } = req.query;
 
-    // Build query
-    const query = {
-        campus: req.user ? req.user.campus : req.query.campus,
+    // ── Base filter (always applied) ──────────────────────────────────────────
+    const campus = req.user ? req.user.campus : req.query.campus;
+    if (!campus) throw new AppError('Campus parameter is required', 400);
+
+    const baseFilter = {
+        campus,
         isHidden: false,
         moderationStatus: { $in: ['approved', 'pending'] }
     };
 
-    if (!query.campus) {
-        throw new AppError('Campus parameter is required', 400);
-    }
+    if (department) baseFilter.department = department;
+    if (semester) baseFilter.semester = parseInt(semester);
+    if (subject) baseFilter.subject = new RegExp(subject, 'i');
 
-    if (department) query.department = department;
-    if (semester) query.semester = parseInt(semester);
-    if (subject) query.subject = new RegExp(subject, 'i');
-
-    // Build sort
+    // ── Sort ──────────────────────────────────────────────────────────────────
     let sort = {};
     switch (sortBy) {
-        case 'popular':
-            sort = { voteScore: -1, uploadedAt: -1 };
-            break;
-        case 'downloads':
-            sort = { downloadCount: -1, uploadedAt: -1 };
-            break;
-        case 'recent':
-        default:
-            sort = { uploadedAt: -1 };
+        case 'popular': sort = { voteScore: -1, uploadedAt: -1 }; break;
+        case 'downloads': sort = { downloadCount: -1, uploadedAt: -1 }; break;
+        default: sort = { uploadedAt: -1 };
     }
 
-    // Pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
+    const lim = parseInt(limit);
+    const pop = { path: 'uploadedBy', select: 'name department semester reputationScore' };
+    const sel = '-filePublicId';
 
-    // Execute query
-    const [notes, total] = await Promise.all([
-        Note.find(query)
+    // ── No search query — standard paginated list ─────────────────────────────
+    if (!search || !search.trim()) {
+        const [notes, total] = await Promise.all([
+            Note.find(baseFilter).sort(sort).skip(skip).limit(lim).populate(pop).select(sel),
+            Note.countDocuments(baseFilter)
+        ]);
+        return res.status(200).json({
+            success: true,
+            count: notes.length,
+            total,
+            page: parseInt(page),
+            pages: Math.ceil(total / lim),
+            notes,
+            searchMeta: null
+        });
+    }
+
+    // ── SMART SEARCH ──────────────────────────────────────────────────────────
+    const q = search.trim();
+
+    // 1️⃣  Find uploaders whose NAME matches the query (for "search by teacher name")
+    const matchingUsers = await require('../models').User.find({
+        name: new RegExp(q.split(/\s+/).join('|'), 'i')
+    }).select('_id').lean();
+    const uploaderIds = matchingUsers.map(u => u._id);
+
+    // 2️⃣  Build per-field regex OR clause (always included — catches short queries
+    //     and query words that MongoDB $text treats as stop-words)
+    const terms = q.split(/\s+/).filter(Boolean);
+    const regexOr = terms.flatMap(t => {
+        const r = new RegExp(t, 'i');
+        return [
+            { title: r },
+            { subject: r },
+            { subjectCode: r },
+            { description: r }
+        ];
+    });
+    if (uploaderIds.length) regexOr.push({ uploadedBy: { $in: uploaderIds } });
+
+    // 3️⃣  Try $text search first (stemmed, diacritic-insensitive, weighted)
+    let notes = [];
+    let usedTextSearch = false;
+
+    try {
+        const textFilter = {
+            ...baseFilter,
+            $text: { $search: q, $diacriticSensitive: false }
+        };
+        const textResults = await Note
+            .find(textFilter, { score: { $meta: 'textScore' } })
+            .sort({ score: { $meta: 'textScore' }, ...sort })
+            .limit(lim * 3)   // fetch more so Fuse.js can re-rank
+            .populate(pop)
+            .select(sel)
+            .lean();
+
+        if (textResults.length > 0) {
+            notes = textResults;
+            usedTextSearch = true;
+        }
+    } catch (_) {
+        // $text index may not exist yet — fall through to regex
+    }
+
+    // 4️⃣  If $text returned nothing, use regex OR (also catches typos via Fuse on FE)
+    if (!usedTextSearch) {
+        const regexFilter = { ...baseFilter, $or: regexOr };
+        notes = await Note
+            .find(regexFilter)
             .sort(sort)
-            .skip(skip)
-            .limit(parseInt(limit))
-            .populate('uploadedBy', 'name department semester reputationScore')
-            .select('-filePublicId'),
-        Note.countDocuments(query)
-    ]);
+            .limit(lim * 3)
+            .populate(pop)
+            .select(sel)
+            .lean();
+    }
+
+    // 5️⃣  Also union in uploader-name matches that $text might have missed
+    if (uploaderIds.length && usedTextSearch) {
+        const uploaderMatches = await Note
+            .find({ ...baseFilter, uploadedBy: { $in: uploaderIds } })
+            .sort(sort)
+            .limit(20)
+            .populate(pop)
+            .select(sel)
+            .lean();
+
+        // Merge without duplicates
+        const seen = new Set(notes.map(n => n._id.toString()));
+        for (const n of uploaderMatches) {
+            if (!seen.has(n._id.toString())) {
+                notes.push(n);
+                seen.add(n._id.toString());
+            }
+        }
+    }
 
     res.status(200).json({
         success: true,
         count: notes.length,
-        total,
-        page: parseInt(page),
-        pages: Math.ceil(total / parseInt(limit)),
-        notes
+        total: notes.length,
+        page: 1,
+        pages: 1,
+        notes,
+        // Tell the frontend which mode was used so it can show a label
+        searchMeta: {
+            query: q,
+            mode: usedTextSearch ? 'text' : 'regex',
+            uploaderMatchCount: uploaderIds.length
+        }
     });
 });
 
@@ -319,10 +408,11 @@ const voteNote = asyncHandler(async (req, res) => {
     await note.updateVoteScore();
 
     // Check reward eligibility
+    const wasEligibleBefore = note.rewardEligible;
     note.checkRewardEligibility();
     await note.save();
 
-    // Award reputation to uploader if eligible
+    // Award reputation to uploader if newly eligible
     if (note.rewardEligible && !note.rewardGiven) {
         const uploader = await User.findById(note.uploadedBy);
         if (uploader) {
@@ -330,6 +420,29 @@ const voteNote = asyncHandler(async (req, res) => {
             note.rewardGiven = true;
             await note.save();
         }
+    }
+
+    // 🔔 Notify the note uploader about the upvote
+    if (voteType === 'upvote' && !existingVote) {
+        await createNotification(req.io, {
+            recipientId: note.uploadedBy.toString(),
+            senderId: req.user._id.toString(),
+            type: 'note_upvote',
+            title: 'Your note got an upvote!',
+            message: `${req.user.name} upvoted your note "${note.title}"`,
+            link: `/notes/${note._id}`
+        });
+    }
+
+    // 🔔 Milestone notification when note first becomes reward-eligible
+    if (!wasEligibleBefore && note.rewardEligible) {
+        await createNotification(req.io, {
+            recipientId: note.uploadedBy.toString(),
+            type: 'note_milestone',
+            title: '🎉 Milestone reached!',
+            message: `Your note "${note.title}" is now reward-eligible and you earned reputation points!`,
+            link: `/notes/${note._id}`
+        });
     }
 
     res.status(200).json({

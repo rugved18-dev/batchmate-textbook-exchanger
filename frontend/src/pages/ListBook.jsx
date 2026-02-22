@@ -1,10 +1,106 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Upload, X, Plus, ArrowLeft, DollarSign } from 'lucide-react'
+import { Upload, X, Plus, ArrowLeft, IndianRupee, TrendingDown, AlertTriangle, CheckCircle2, Info } from 'lucide-react'
 import api from '../utils/api'
 import { SUBJECTS, SEMESTERS, BRANCHES } from '../utils/helpers'
 import toast from 'react-hot-toast'
 import LoadingSpinner from '../components/LoadingSpinner'
+
+// ── Condition → price multipliers ───────────────────────────────────────────
+const CONDITION_MULTIPLIERS = {
+    'Like New': { mid: 0.65, label: 'Like New', color: 'text-green-400', desc: 'Minimal wear — you can price higher' },
+    'Good': { mid: 0.55, label: 'Good', color: 'text-blue-400', desc: 'Light wear — solid mid-range price' },
+    'Fair': { mid: 0.45, label: 'Fair', color: 'text-yellow-400', desc: 'Visible wear — price competitively' },
+    'Acceptable': { mid: 0.35, label: 'Acceptable', color: 'text-orange-400', desc: 'Heavy wear — aggressive discount needed' },
+};
+
+// ── Price Band UI component ───────────────────────────────────────────────────
+const PriceBand = ({ mrp, condition, currentPrice }) => {
+    if (!mrp || !condition || !CONDITION_MULTIPLIERS[condition]) return null;
+    const mrpNum = parseFloat(mrp);
+    if (isNaN(mrpNum) || mrpNum <= 0) return null;
+
+    const meta = CONDITION_MULTIPLIERS[condition];
+    const recMid = Math.round(mrpNum * meta.mid);
+    const recLow = Math.round(mrpNum * (meta.mid - 0.10));
+    const recHigh = Math.round(mrpNum * (meta.mid + 0.10));
+    const hardCeil = Math.round(mrpNum * 0.80);   // above this = hard to sell
+
+    const priceNum = parseFloat(currentPrice);
+    const hasPrice = !isNaN(priceNum) && priceNum > 0;
+    const tooHigh = hasPrice && priceNum > hardCeil;
+    const inBand = hasPrice && priceNum >= recLow && priceNum <= recHigh;
+    const discount = hasPrice ? Math.round(((mrpNum - priceNum) / mrpNum) * 100) : null;
+
+    // Slider range: recLow - 20% to hardCeil + 20%
+    const sliderMin = Math.round(mrpNum * (meta.mid - 0.30));
+    const sliderMax = Math.round(mrpNum * 0.90);
+    const pctLow = ((recLow - sliderMin) / (sliderMax - sliderMin)) * 100;
+    const pctHigh = ((recHigh - sliderMin) / (sliderMax - sliderMin)) * 100;
+    const pctPrice = hasPrice ? Math.min(100, Math.max(0, ((priceNum - sliderMin) / (sliderMax - sliderMin)) * 100)) : null;
+
+    return (
+        <div className={`mt-3 p-4 rounded-xl border text-sm space-y-3 ${tooHigh
+                ? 'bg-red-500/10 border-red-500/30'
+                : inBand
+                    ? 'bg-green-500/10 border-green-500/30'
+                    : 'bg-dark-200 border-white/10'
+            }`}>
+            {/* Band label */}
+            <div className="flex items-center justify-between">
+                <span className="text-gray-400 text-xs">Recommended range</span>
+                <span className="font-bold text-white">₹{recLow} – ₹{recHigh}</span>
+            </div>
+
+            {/* Visual gradient bar */}
+            <div className="relative h-2 bg-white/5 rounded-full overflow-visible">
+                {/* green band */}
+                <div
+                    className="absolute h-full bg-green-500/40 rounded-full"
+                    style={{ left: `${pctLow}%`, width: `${pctHigh - pctLow}%` }}
+                />
+                {/* current price marker */}
+                {pctPrice !== null && (
+                    <div
+                        className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-white shadow-lg transition-all ${tooHigh ? 'bg-red-500' : inBand ? 'bg-green-400' : 'bg-amber-400'
+                            }`}
+                        style={{ left: `calc(${pctPrice}% - 7px)` }}
+                    />
+                )}
+            </div>
+
+            <div className="flex justify-between text-[10px] text-gray-600">
+                <span>₹{sliderMin}</span>
+                <span>₹{sliderMax}</span>
+            </div>
+
+            {/* Status messages */}
+            {tooHigh && (
+                <div className="flex items-start gap-2 text-red-400">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>Hard to sell above ₹{hardCeil} (80% of MRP). Buyers rarely pay this for a {condition} book.</span>
+                </div>
+            )}
+            {inBand && !tooHigh && (
+                <div className="flex items-start gap-2 text-green-400">
+                    <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>Great price! {discount}% off MRP — this will attract buyers quickly.</span>
+                </div>
+            )}
+            {!inBand && !tooHigh && hasPrice && (
+                <div className="flex items-start gap-2 text-amber-400">
+                    <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>Suggested: ₹{recMid} for {condition} condition ({Math.round(meta.mid * 100)}% of MRP).</span>
+                </div>
+            )}
+            {!hasPrice && (
+                <p className="text-gray-600 text-xs">{meta.desc}</p>
+            )}
+        </div>
+    );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 const ListBook = () => {
     const navigate = useNavigate()
@@ -54,22 +150,23 @@ const ListBook = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }))
+        setFormData(prev => {
+            const next = { ...prev, [name]: value }
 
-        // Auto-suggest price when MRP is entered
-        if (name === 'mrp' && value) {
-            const mrpValue = parseFloat(value)
-            if (!isNaN(mrpValue)) {
-                const suggestedPrice = Math.round(mrpValue * 0.5) // 50% of MRP
-                setFormData(prev => ({
-                    ...prev,
-                    price: suggestedPrice.toString()
-                }))
+            // Recalculate suggested price whenever MRP or condition changes
+            const mrpNum = parseFloat(name === 'mrp' ? value : next.mrp)
+            const cond = name === 'condition' ? value : next.condition
+            const mult = CONDITION_MULTIPLIERS[cond]?.mid
+
+            if (!isNaN(mrpNum) && mrpNum > 0 && mult) {
+                // Only auto-fill price if user hasn't manually typed one yet
+                // (or if they changed MRP/condition)
+                if (name === 'mrp' || name === 'condition') {
+                    next.price = Math.round(mrpNum * mult).toString()
+                }
             }
-        }
+            return next
+        })
     }
 
     const handleSubmit = async (e) => {
@@ -302,14 +399,14 @@ const ListBook = () => {
                             MRP (₹)
                         </label>
                         <div className="relative">
-                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
                                 type="number"
                                 name="mrp"
                                 value={formData.mrp}
                                 onChange={handleChange}
                                 placeholder="Original price"
-                                className="input w-full pl-11"
+                                className="input w-full pl-10"
                                 min="0"
                             />
                         </div>
@@ -320,25 +417,27 @@ const ListBook = () => {
                             Selling Price (₹) <span className="text-red-400">*</span>
                         </label>
                         <div className="relative">
-                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
                                 type="number"
                                 name="price"
                                 value={formData.price}
                                 onChange={handleChange}
-                                placeholder="Your price"
-                                className="input w-full pl-11"
+                                placeholder="Your asking price"
+                                className="input w-full pl-10"
                                 min="0"
                                 required
                             />
                         </div>
-                        {formData.mrp && formData.price && formData.mrp > formData.price && (
-                            <p className="text-xs text-green-400 mt-1">
-                                {Math.round(((formData.mrp - formData.price) / formData.mrp) * 100)}% off MRP
-                            </p>
-                        )}
                     </div>
                 </div>
+
+                {/* Smart Price Band */}
+                <PriceBand
+                    mrp={formData.mrp}
+                    condition={formData.condition}
+                    currentPrice={formData.price}
+                />
 
                 {/* Description */}
                 <div>

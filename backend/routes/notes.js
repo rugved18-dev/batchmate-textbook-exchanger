@@ -5,6 +5,7 @@ const { authenticate, optionalAuth } = require('../middleware/auth');
 const { uploadLimiter, voteLimiter } = require('../middleware/rateLimiter');
 const { validate, noteSchemas } = require('../middleware/validation');
 const { uploadPDF } = require('../middleware/upload');
+const { summarizeNote } = require('../controllers/aiController');
 
 // @route   GET /api/notes/popular
 // @desc    Get popular notes
@@ -40,5 +41,10 @@ router.post('/:id/vote', authenticate, voteLimiter, noteController.voteNote);
 // @desc    Delete a note
 // @access  Private
 router.delete('/:id', authenticate, noteController.deleteNote);
+
+// @route   POST /api/notes/:id/summarize
+// @desc    AI-powered PDF summary (Gemini, cached 24h)
+// @access  Private
+router.post('/:id/summarize', authenticate, summarizeNote);
 
 module.exports = router;

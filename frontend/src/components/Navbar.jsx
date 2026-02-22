@@ -8,12 +8,14 @@ import {
     LogOut,
     LayoutDashboard,
     Menu,
-    X
+    X,
+    Crown
 } from 'lucide-react'
 import { useState } from 'react'
+import NotificationBell from './NotificationBell'
 
 const Navbar = () => {
-    const { user, logout } = useAuth()
+    const { user, logout, unreadCount } = useAuth()
     const location = useLocation()
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -21,7 +23,7 @@ const Navbar = () => {
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { path: '/notes', label: 'Notes', icon: FileText },
         { path: '/books', label: 'Books', icon: BookOpen },
-        { path: '/chat', label: 'Chat', icon: MessageCircle },
+        { path: '/chat', label: 'Chat', icon: MessageCircle, badge: unreadCount },
     ]
 
     const isActive = (path) => location.pathname === path
@@ -49,14 +51,22 @@ const Navbar = () => {
                                     key={link.path}
                                     to={link.path}
                                     className={`
-                    flex items-center gap-2 px-4 py-2 rounded-lg transition-all
+                    relative flex items-center gap-2 px-4 py-2 rounded-lg transition-all
                     ${isActive(link.path)
                                             ? 'bg-primary-500/20 text-primary-400'
                                             : 'text-gray-300 hover:bg-white/5 hover:text-white'
                                         }
                   `}
                                 >
-                                    <Icon className="w-5 h-5" />
+                                    <span className="relative">
+                                        <Icon className="w-5 h-5" />
+                                        {/* Unread badge */}
+                                        {link.badge > 0 && (
+                                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold min-w-[16px] h-4 flex items-center justify-center rounded-full px-1 leading-none animate-pulse">
+                                                {link.badge > 99 ? '99+' : link.badge}
+                                            </span>
+                                        )}
+                                    </span>
                                     <span className="font-medium">{link.label}</span>
                                 </Link>
                             )
@@ -64,7 +74,23 @@ const Navbar = () => {
                     </div>
 
                     {/* User Menu */}
-                    <div className="hidden md:flex items-center gap-4">
+                    <div className="hidden md:flex items-center gap-2">
+                        {/* 🔔 Real-time notification bell */}
+                        <NotificationBell />
+
+                        {/* 👑 Admin link — only for admin role */}
+                        {user?.role === 'admin' && (
+                            <Link
+                                to="/admin"
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${isActive('/admin')
+                                        ? 'bg-amber-500/20 text-amber-400'
+                                        : 'text-amber-500/80 hover:bg-amber-500/10 hover:text-amber-400'
+                                    }`}
+                            >
+                                <Crown className="w-4 h-4" />
+                                Admin
+                            </Link>
+                        )}
                         <Link
                             to="/profile"
                             className={`
@@ -75,7 +101,7 @@ const Navbar = () => {
                                 }
               `}
                         >
-                            <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full flex items-center justify-center">
+                            <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full flex items-center justify-center overflow-hidden">
                                 {user?.profilePicture ? (
                                     <img
                                         src={user.profilePicture}
@@ -104,12 +130,18 @@ const Navbar = () => {
                     {/* Mobile Menu Button */}
                     <button
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        className="md:hidden p-2 text-gray-300 hover:bg-white/5 rounded-lg"
+                        className="md:hidden p-2 text-gray-300 hover:bg-white/5 rounded-lg relative"
                     >
                         {mobileMenuOpen ? (
                             <X className="w-6 h-6" />
                         ) : (
-                            <Menu className="w-6 h-6" />
+                            <>
+                                <Menu className="w-6 h-6" />
+                                {/* Mobile unread dot */}
+                                {unreadCount > 0 && (
+                                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full" />
+                                )}
+                            </>
                         )}
                     </button>
                 </div>
@@ -133,8 +165,20 @@ const Navbar = () => {
                                             }
                     `}
                                     >
-                                        <Icon className="w-5 h-5" />
+                                        <span className="relative">
+                                            <Icon className="w-5 h-5" />
+                                            {link.badge > 0 && (
+                                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold min-w-[16px] h-4 flex items-center justify-center rounded-full px-1">
+                                                    {link.badge > 99 ? '99+' : link.badge}
+                                                </span>
+                                            )}
+                                        </span>
                                         <span className="font-medium">{link.label}</span>
+                                        {link.badge > 0 && (
+                                            <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                                {link.badge}
+                                            </span>
+                                        )}
                                     </Link>
                                 )
                             })}

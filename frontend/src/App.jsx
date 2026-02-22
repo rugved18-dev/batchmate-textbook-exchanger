@@ -13,6 +13,7 @@ import BookDetail from './pages/BookDetail'
 import ListBook from './pages/ListBook'
 import Chat from './pages/Chat'
 import Profile from './pages/Profile'
+import AdminDashboard from './pages/AdminDashboard'
 import NotFound from './pages/NotFound'
 import LoadingSpinner from './components/LoadingSpinner'
 
@@ -68,6 +69,9 @@ function App() {
               {/* Chat & Profile */}
               <Route path="/chat" element={<Chat />} />
               <Route path="/profile" element={<Profile />} />
+
+              {/* Admin */}
+              <Route path="/admin" element={<AdminDashboard />} />
 
               {/* Default & 404 */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />

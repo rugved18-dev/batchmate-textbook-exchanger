@@ -1,6 +1,7 @@
 const { Book, BookRequest, User, Report } = require('../models');
 const { uploadBookImage, deleteFile, deleteMultipleFiles, validateImage } = require('../utils/cloudinary');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
+const { createNotification } = require('./notificationHelper');
 const fs = require('fs').promises;
 
 /**
@@ -402,6 +403,15 @@ const markAsSold = asyncHandler(async (req, res) => {
     req.user.exchangeCount += 1;
     await req.user.updateReputation(10); // 10 points for successful exchange
 
+    // 🔔 Notify the seller (self) with a congratulations
+    await createNotification(req.io, {
+        recipientId: req.user._id.toString(),
+        type: 'book_sold',
+        title: '🎉 Book sold!',
+        message: `Congratulations! "${book.title}" has been marked as sold. You earned 10 reputation points.`,
+        link: '/profile'
+    });
+
     res.status(200).json({
         success: true,
         message: 'Book marked as sold. Congratulations!',
@@ -502,6 +512,15 @@ const createBookRequest = asyncHandler(async (req, res) => {
     });
 
     await bookRequest.populate('requestedBy', 'name department semester');
+
+    // 🔔 Confirm to the requester that their request is live
+    await createNotification(req.io, {
+        recipientId: req.user._id.toString(),
+        type: 'book_request',
+        title: 'Book request posted!',
+        message: `Your request for "${title}" is now live. We'll notify you when someone has it.`,
+        link: '/books'
+    });
 
     res.status(201).json({
         success: true,

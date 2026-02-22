@@ -11,12 +11,14 @@ import {
     CheckCircle,
     ArrowLeft,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Star
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import api from '../utils/api'
 import { formatDate, formatPrice } from '../utils/helpers'
 import LoadingSpinner from '../components/LoadingSpinner'
+import { BadgeRow, ReviewForm, ReviewList } from '../components/BadgeReview'
 import toast from 'react-hot-toast'
 
 const BookDetail = () => {
@@ -26,10 +28,20 @@ const BookDetail = () => {
     const [book, setBook] = useState(null)
     const [loading, setLoading] = useState(true)
     const [currentImageIndex, setCurrentImageIndex] = useState(0)
+    const [reviewable, setReviewable] = useState(false)
+    const [reviewDone, setReviewDone] = useState(false)
 
     useEffect(() => {
         fetchBookDetails()
     }, [id])
+
+    // Check if the logged-in user can leave a review
+    useEffect(() => {
+        if (!user || !id) return
+        api.get(`/reviews/can-review/${id}`)
+            .then(r => { if (r.data.canReview) setReviewable(true) })
+            .catch(() => { })
+    }, [id, user])
 
     const fetchBookDetails = async () => {
         try {
@@ -168,8 +180,8 @@ const BookDetail = () => {
                                                         key={index}
                                                         onClick={() => setCurrentImageIndex(index)}
                                                         className={`w-2 h-2 rounded-full transition-all ${index === currentImageIndex
-                                                                ? 'bg-white w-6'
-                                                                : 'bg-white/50'
+                                                            ? 'bg-white w-6'
+                                                            : 'bg-white/50'
                                                             }`}
                                                     />
                                                 ))}
@@ -199,8 +211,8 @@ const BookDetail = () => {
                                         key={index}
                                         onClick={() => setCurrentImageIndex(index)}
                                         className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${index === currentImageIndex
-                                                ? 'border-primary-500'
-                                                : 'border-transparent opacity-60 hover:opacity-100'
+                                            ? 'border-primary-500'
+                                            : 'border-transparent opacity-60 hover:opacity-100'
                                             }`}
                                     >
                                         <img
@@ -277,7 +289,7 @@ const BookDetail = () => {
                     {/* Seller Info */}
                     <div className="card">
                         <h3 className="text-lg font-semibold text-white mb-4">Seller Information</h3>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 mb-4">
                             <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full flex items-center justify-center">
                                 {book.listedBy?.profilePicture ? (
                                     <img
@@ -291,13 +303,28 @@ const BookDetail = () => {
                             </div>
                             <div className="flex-1">
                                 <div className="text-white font-semibold text-lg">{book.listedBy?.name || 'Anonymous'}</div>
-                                <div className="text-sm text-gray-400">{book.listedBy?.college || 'College'}</div>
+                                <div className="text-sm text-gray-400">{book.listedBy?.campus || 'Campus'}</div>
                                 <div className="text-sm text-gray-400">
-                                    {book.listedBy?.reputationPoints || 0} reputation points
+                                    {book.listedBy?.reputationScore || 0} reputation points
                                 </div>
                             </div>
                         </div>
+                        {/* Seller badges + star rating */}
+                        {book.listedBy?._id && (
+                            <BadgeRow userId={book.listedBy._id} size="sm" />
+                        )}
                     </div>
+
+                    {/* Reviews for this seller */}
+                    {book.listedBy?._id && (
+                        <div className="card">
+                            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                                <Star className="w-5 h-5 text-amber-400" />
+                                Seller Reviews
+                            </h3>
+                            <ReviewList sellerId={book.listedBy._id} />
+                        </div>
+                    )}
                 </div>
 
                 {/* Sidebar */}
@@ -339,6 +366,20 @@ const BookDetail = () => {
                             <div className="p-4 bg-red-500/20 border border-red-500/30 rounded-lg text-center">
                                 <CheckCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
                                 <div className="text-white font-semibold">This book has been sold</div>
+                            </div>
+                        )}
+
+                        {/* Review form — shown to buyer after book is sold */}
+                        {book.status === 'sold' && !isOwner && reviewable && !reviewDone && (
+                            <ReviewForm
+                                bookId={book._id}
+                                sellerId={book.listedBy?._id}
+                                onSubmitted={() => { setReviewDone(true); setReviewable(false) }}
+                            />
+                        )}
+                        {reviewDone && (
+                            <div className="p-4 rounded-xl border border-green-500/30 bg-green-500/10 text-green-400 text-sm text-center">
+                                ✅ Thank you for your review!
                             </div>
                         )}
                     </div>

@@ -10,12 +10,14 @@ import {
     Download,
     Edit2,
     Save,
-    X
+    X,
+    Star
 } from 'lucide-react'
 import api from '../utils/api'
 import LoadingSpinner from '../components/LoadingSpinner'
 import NoteCard from '../components/NoteCard'
 import BookCard from '../components/BookCard'
+import { BadgeRow, ReviewList } from '../components/BadgeReview'
 import toast from 'react-hot-toast'
 
 const Profile = () => {
@@ -205,12 +207,14 @@ const Profile = () => {
                             <>
                                 <div>
                                     <h2 className="text-2xl font-bold text-white mb-1">{user?.name}</h2>
-                                    <div className="flex items-center gap-2 text-gray-400 mb-2">
+                                    <div className="flex items-center gap-2 text-gray-400 mb-3">
                                         <Mail className="w-4 h-4" />
                                         <span>{user?.email}</span>
                                     </div>
+                                    {/* ⭐ Badges */}
+                                    <BadgeRow userId={user?._id} />
                                     {user?.bio && (
-                                        <p className="text-gray-300 mb-2">{user.bio}</p>
+                                        <p className="text-gray-300 mt-3 mb-2">{user.bio}</p>
                                     )}
                                     {user?.phone && (
                                         <p className="text-gray-400">📱 {user.phone}</p>
@@ -262,8 +266,8 @@ const Profile = () => {
                 <button
                     onClick={() => setActiveTab('notes')}
                     className={`pb-3 px-4 font-medium transition-colors relative ${activeTab === 'notes'
-                            ? 'text-primary-400'
-                            : 'text-gray-400 hover:text-white'
+                        ? 'text-primary-400'
+                        : 'text-gray-400 hover:text-white'
                         }`}
                 >
                     <div className="flex items-center gap-2">
@@ -278,8 +282,8 @@ const Profile = () => {
                 <button
                     onClick={() => setActiveTab('books')}
                     className={`pb-3 px-4 font-medium transition-colors relative ${activeTab === 'books'
-                            ? 'text-primary-400'
-                            : 'text-gray-400 hover:text-white'
+                        ? 'text-primary-400'
+                        : 'text-gray-400 hover:text-white'
                         }`}
                 >
                     <div className="flex items-center gap-2">
@@ -287,6 +291,22 @@ const Profile = () => {
                         My Books ({myBooks.length})
                     </div>
                     {activeTab === 'books' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-400" />
+                    )}
+                </button>
+
+                <button
+                    onClick={() => setActiveTab('reviews')}
+                    className={`pb-3 px-4 font-medium transition-colors relative ${activeTab === 'reviews'
+                        ? 'text-primary-400'
+                        : 'text-gray-400 hover:text-white'
+                        }`}
+                >
+                    <div className="flex items-center gap-2">
+                        <Star className="w-5 h-5" />
+                        Reviews
+                    </div>
+                    {activeTab === 'reviews' && (
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-400" />
                     )}
                 </button>
@@ -332,6 +352,12 @@ const Profile = () => {
                             </a>
                         </div>
                     )
+                )}
+
+                {activeTab === 'reviews' && (
+                    <div className="max-w-2xl">
+                        <ReviewList sellerId={user?._id} />
+                    </div>
                 )}
             </div>
         </div>

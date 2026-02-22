@@ -183,6 +183,16 @@ const noteSchema = new mongoose.Schema({
         index: true
     },
 
+    // AI Summary (Gemini-generated, cached to avoid repeated API calls)
+    aiSummary: {
+        type: String,
+        default: null
+    },
+    aiSummaryGeneratedAt: {
+        type: Date,
+        default: null
+    },
+
     // Timestamps
     uploadedAt: {
         type: Date,
@@ -199,6 +209,13 @@ noteSchema.index({ campus: 1, subject: 1 });
 noteSchema.index({ voteScore: -1, uploadedAt: -1 });
 noteSchema.index({ isHidden: 1, moderationStatus: 1 });
 noteSchema.index({ uploadedBy: 1, uploadedAt: -1 });
+
+// Full-text search index — powers $text queries across key fields
+// Weights: title is most important, then subject/code, then description
+noteSchema.index(
+    { title: 'text', subject: 'text', subjectCode: 'text', description: 'text' },
+    { weights: { title: 10, subject: 8, subjectCode: 6, description: 3 }, name: 'notes_text_search' }
+);
 
 // Auto-hide notes with score <= -5
 noteSchema.pre('save', function (next) {

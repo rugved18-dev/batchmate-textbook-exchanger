@@ -11,6 +11,8 @@ const Vote = require('./Vote');
 const Report = require('./Report');
 const Chat = require('./Chat');
 const Message = require('./Message');
+const Notification = require('./Notification');
+const SellerReview = require('./SellerReview');
 
 module.exports = {
     User,
@@ -20,5 +22,7 @@ module.exports = {
     Vote,
     Report,
     Chat,
-    Message
+    Message,
+    Notification,
+    SellerReview
 };
