@@ -10,6 +10,8 @@ const connectDB = require('./config/database');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const { generalLimiter } = require('./middleware/rateLimiter');
 
+
+
 // Import routes
 const authRoutes = require('./routes/auth');
 const noteRoutes = require('./routes/notes');
