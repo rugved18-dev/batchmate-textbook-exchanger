@@ -15,9 +15,9 @@ const UploadNote = () => {
         title: '',
         subject: '',
         semester: '',
-        branch: '',
+        department: '',
         description: '',
-        isHandwritten: false
+        confirmedHandwritten: false
     })
 
     const handleFileChange = (e) => {
@@ -57,12 +57,12 @@ const UploadNote = () => {
             return
         }
 
-        if (!formData.isHandwritten) {
+        if (!formData.confirmedHandwritten) {
             toast.error('Please confirm that the notes are handwritten')
             return
         }
 
-        if (!formData.title || !formData.subject || !formData.semester) {
+        if (!formData.title || !formData.subject || !formData.semester || !formData.department) {
             toast.error('Please fill in all required fields')
             return
         }
@@ -76,9 +76,9 @@ const UploadNote = () => {
             data.append('title', formData.title)
             data.append('subject', formData.subject)
             data.append('semester', formData.semester)
-            if (formData.branch) data.append('branch', formData.branch)
+            data.append('department', formData.department)
             if (formData.description) data.append('description', formData.description)
-            data.append('isHandwritten', formData.isHandwritten)
+            data.append('confirmedHandwritten', formData.confirmedHandwritten)
 
             // Upload
             const response = await api.post('/notes', data, {
@@ -88,7 +88,7 @@ const UploadNote = () => {
             })
 
             toast.success('Note uploaded successfully! 🎉')
-            navigate(`/notes/${response.data.data._id}`)
+            navigate(`/notes/${response.data.note._id}`)
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to upload note')
         } finally {
@@ -217,15 +217,16 @@ const UploadNote = () => {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Branch (Optional)
+                            Department <span className="text-red-400">*</span>
                         </label>
                         <select
-                            name="branch"
-                            value={formData.branch}
+                            name="department"
+                            value={formData.department}
                             onChange={handleChange}
                             className="input w-full"
+                            required
                         >
-                            <option value="">Select Branch</option>
+                            <option value="">Select Department</option>
                             {BRANCHES.map(branch => (
                                 <option key={branch} value={branch}>{branch}</option>
                             ))}
@@ -253,8 +254,8 @@ const UploadNote = () => {
                     <label className="flex items-start gap-3 cursor-pointer">
                         <input
                             type="checkbox"
-                            name="isHandwritten"
-                            checked={formData.isHandwritten}
+                            name="confirmedHandwritten"
+                            checked={formData.confirmedHandwritten}
                             onChange={handleChange}
                             className="mt-1 w-5 h-5 rounded border-gray-600 text-primary-500 focus:ring-primary-500"
                         />
