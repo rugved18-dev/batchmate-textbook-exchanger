@@ -5,9 +5,19 @@ const { authenticate } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimiter');
 
 // @route   POST /api/auth/google
-// @desc    Login with Google OAuth
+// @desc    Login with Google OAuth (token verification)
 // @access  Public
 router.post('/google', authLimiter, authController.googleLogin);
+
+// @route   GET /api/auth/google
+// @desc    Redirect to Google OAuth consent page
+// @access  Public
+router.get('/google', authController.googleRedirect);
+
+// @route   GET /api/auth/google/callback
+// @desc    Google OAuth callback handling
+// @access  Public
+router.get('/google/callback', authController.googleCallback);
 
 // @route   POST /api/auth/complete-registration
 // @desc    Complete registration after Google OAuth

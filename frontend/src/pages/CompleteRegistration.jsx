@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../utils/api'
@@ -18,9 +18,23 @@ const CompleteRegistration = () => {
         campus: 'Default Campus'
     })
 
-    // Get user data passed from Login page
-    const userData = location.state?.userData
-    const credential = location.state?.credential
+    // Get user data passed from Login page, or fallback to query parameters (backend callback redirect)
+    const params = new URLSearchParams(location.search)
+    const queryUserData = params.get('email') ? {
+        name: params.get('name') || '',
+        email: params.get('email') || '',
+        picture: params.get('picture') || ''
+    } : null
+
+    const [userData] = useState(() => location.state?.userData || queryUserData)
+    const [credential] = useState(() => location.state?.credential || params.get('credential') || '')
+
+    // Clean up query parameters from location search bar for UX/security
+    useEffect(() => {
+        if (location.search) {
+            window.history.replaceState({}, document.title, window.location.pathname)
+        }
+    }, [location])
 
     // Redirect if accessed directly without registration flow
     if (!userData) {

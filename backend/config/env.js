@@ -3,6 +3,7 @@ const requiredEnv = [
     'PORT',
     'MONGODB_URI',
     'GOOGLE_CLIENT_ID',
+    'GOOGLE_CLIENT_SECRET',
     'JWT_SECRET',
     'JWT_REFRESH_SECRET',
     'CLOUDINARY_CLOUD_NAME',

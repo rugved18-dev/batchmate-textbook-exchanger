@@ -261,10 +261,120 @@ const logout = asyncHandler(async (req, res) => {
     });
 });
 
+/**
+ * Helper to dynamically construct the Google OAuth2 Client
+ */
+const getOAuth2Client = (req) => {
+    const redirectUri = process.env.GOOGLE_CALLBACK_URL || 
+        `${process.env.NODE_ENV === 'production' ? 'https' : req.protocol}://${req.get('host')}/api/auth/google/callback`;
+    return new OAuth2Client(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        redirectUri
+    );
+};
+
+/**
+ * @desc    Redirect to Google OAuth consent page
+ * @route   GET /api/auth/google
+ * @access  Public
+ */
+const googleRedirect = asyncHandler(async (req, res) => {
+    const oauth2Client = getOAuth2Client(req);
+    
+    const authorizeUrl = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: [
+            'https://www.googleapis.com/auth/userinfo.profile',
+            'https://www.googleapis.com/auth/userinfo.email'
+        ],
+        prompt: 'consent'
+    });
+    
+    res.redirect(authorizeUrl);
+});
+
+/**
+ * @desc    Google OAuth callback handling
+ * @route   GET /api/auth/google/callback
+ * @access  Public
+ */
+const googleCallback = asyncHandler(async (req, res) => {
+    const { code } = req.query;
+    if (!code) {
+        throw new AppError('Authorization code is required', 400);
+    }
+    
+    const oauth2Client = getOAuth2Client(req);
+    
+    // Exchange code for tokens
+    let tokens;
+    try {
+        const response = await oauth2Client.getToken(code);
+        tokens = response.tokens;
+    } catch (error) {
+        console.error('Failed to retrieve Google tokens:', error);
+        throw new AppError('Failed to retrieve Google tokens', 400);
+    }
+    
+    oauth2Client.setCredentials(tokens);
+    
+    // Verify ID token
+    let ticket;
+    try {
+        ticket = await oauth2Client.verifyIdToken({
+            idToken: tokens.id_token,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+    } catch (error) {
+        console.error('Google token verification error:', error);
+        throw new AppError('Invalid Google token in callback', 401);
+    }
+    
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, picture } = payload;
+    
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    
+    // Verify college email domain (accepts .edu and .ac.in subdomains)
+    if (!isValidCollegeEmail(email)) {
+        return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Please use your college email address (ending with .edu or .ac.in)')}`);
+    }
+    
+    // Find or create user
+    let user = await User.findOne({ googleId });
+    
+    if (!user) {
+        // Check if email already exists
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Email already registered with different account')}`);
+        }
+        
+        // Redirect to complete registration
+        return res.redirect(`${frontendUrl}/complete-registration?credential=${encodeURIComponent(tokens.id_token)}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&picture=${encodeURIComponent(picture || '')}`);
+    } else {
+        // Update user active time
+        user.lastActive = new Date();
+        if (picture) {
+            user.profilePicture = picture;
+        }
+        await user.save();
+        
+        // Generate JWT tokens
+        const jwtTokens = generateTokenResponse(user._id);
+        
+        // Redirect to frontend login with tokens
+        return res.redirect(`${frontendUrl}/login?token=${encodeURIComponent(jwtTokens.accessToken)}&refreshToken=${encodeURIComponent(jwtTokens.refreshToken)}`);
+    }
+});
+
 module.exports = {
     googleLogin,
     completeRegistration,
     refreshToken,
     getCurrentUser,
-    logout
+    logout,
+    googleRedirect,
+    googleCallback
 };
