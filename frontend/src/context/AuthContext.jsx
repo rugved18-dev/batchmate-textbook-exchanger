@@ -28,9 +28,12 @@ export const AuthProvider = ({ children }) => {
         if (user) {
             connectSocket(user)
             fetchUnreadCount()
+        } else {
+            disconnectSocket()
         }
+
         return () => {
-            // Clean up socket listeners when user changes/unmounts
+            disconnectSocket()
         }
     }, [user])
 
@@ -49,7 +52,7 @@ export const AuthProvider = ({ children }) => {
 
     const fetchUnreadCount = async () => {
         try {
-            const res = await api.get('/chat/unread-count')
+            const res = await api.get('/chat/unread')
             setUnreadCount(res.data.data?.unreadCount ?? res.data.unreadCount ?? 0)
         } catch {
             // Silently ignore — not critical
@@ -76,17 +79,21 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('refreshToken', tokens.refreshToken)
     }
 
+    const clearAuth = () => {
+        setUser(null)
+        setUnreadCount(0)
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('refreshToken')
+        disconnectSocket()
+    }
+
     const logout = async () => {
         try {
             await api.post('/auth/logout')
         } catch (error) {
             console.error('Logout error:', error)
         }
-        disconnectSocket()
-        setUser(null)
-        setUnreadCount(0)
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
+        clearAuth()
         toast.success('Logged out successfully')
     }
 

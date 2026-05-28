@@ -19,6 +19,15 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 )
 
+const refreshClient = axios.create({
+    baseURL: import.meta.env.VITE_API_URL || '/api',
+    headers: { 'Content-Type': 'application/json' }
+});
+
+const getErrorMessage = (error) => {
+    return error?.response?.data?.message || error?.message || 'An unexpected error occurred';
+};
+
 // Response interceptor - handle token refresh
 api.interceptors.response.use(
     (response) => response,
@@ -30,7 +39,7 @@ api.interceptors.response.use(
 
             try {
                 const refreshToken = localStorage.getItem('refreshToken')
-                const response = await axios.post('/api/auth/refresh', { refreshToken })
+                const response = await refreshClient.post('/auth/refresh', { refreshToken })
 
                 const { accessToken } = response.data.tokens
                 localStorage.setItem('accessToken', accessToken)
@@ -45,6 +54,8 @@ api.interceptors.response.use(
             }
         }
 
+        // Attach friendly error message for callers
+        error.userMessage = getErrorMessage(error)
         return Promise.reject(error)
     }
 )

@@ -147,7 +147,8 @@ const NoteDetail = () => {
         try {
             setLoading(true)
             const response = await api.get(`/notes/${id}`)
-            setNote(response.data.data)
+            setNote(response.data.note)
+            setUserVote(response.data.userVote || null)
         } catch (error) {
             console.error('Failed to fetch note:', error)
             toast.error('Failed to load note details')

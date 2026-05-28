@@ -9,6 +9,7 @@ const compression = require('compression');
 const mongoSanitize = require('express-mongo-sanitize');
 
 const connectDB = require('./config/database');
+const validateEnv = require('./config/env');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const { generalLimiter } = require('./middleware/rateLimiter');
 
@@ -39,12 +40,19 @@ const io = new Server(server, {
     pingTimeout: 60000
 });
 
+// Validate environment before anything else
+const env = validateEnv();
+
 // Connect to MongoDB
 connectDB();
 
 // Security Middleware
+// Set trust proxy to 1 for deployment behind reverse proxies (Vercel, Render, etc)
+// Safe for rate limiting and IP detection
+app.set('trust proxy', process.env.NODE_ENV === 'production' ? 1 : false);
 app.use(helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" }
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    referrerPolicy: { policy: 'no-referrer' }
 }));
 
 // CORS Configuration
@@ -77,19 +85,29 @@ app.use('/api/', generalLimiter);
 // Usage in any controller: req.io  →  const { createNotification } = require('./notificationHelper'); createNotification(req.io, ...)
 app.use((req, _res, next) => { req.io = io; next(); });
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/notes', noteRoutes);
-app.use('/api/books', bookRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/reviews', reviewRoutes);
+// API Routes (v1 and compatibility)
+const apiRoutes = [
+    { path: '/auth', router: authRoutes },
+    { path: '/notes', router: noteRoutes },
+    { path: '/books', router: bookRoutes },
+    { path: '/chat', router: chatRoutes },
+    { path: '/reports', router: reportRoutes },
+    { path: '/users', router: userRoutes },
+    { path: '/notifications', router: notificationRoutes },
+    { path: '/admin', router: adminRoutes },
+    { path: '/reviews', router: reviewRoutes }
+];
+
+const API_BASE = '/api';
+const API_VERSION = '/api/v1';
+
+apiRoutes.forEach(({ path, router }) => {
+    app.use(`${API_BASE}${path}`, router);
+    app.use(`${API_VERSION}${path}`, router);
+});
 
 // Health check endpoint
-app.get('/api/ping', (req, res) => {
+app.get(`${API_BASE}/ping`, (req, res) => {
     res.status(200).json({
         status: 'OK',
         message: 'Batchmate API is running',
@@ -102,7 +120,11 @@ app.get('/', (req, res) => {
     res.json({
         name: 'Batchmate Textbook Exchanger API',
         version: '1.0.0',
-        realtime: 'Socket.io enabled'
+        realtime: 'Socket.io enabled',
+        api: {
+            health: `${API_BASE}/ping`,
+            version: 'v1'
+        }
     });
 });
 
