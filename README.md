@@ -204,7 +204,9 @@ Batchmate Textbook Exchanger/
 ### Authentication
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/api/auth/google` | ❌ | Google OAuth login (college email only) |
+| GET | `/api/auth/google` | ❌ | Redirect to Google OAuth consent page |
+| GET | `/api/auth/google/callback` | ❌ | Google OAuth authorization code callback |
+| POST | `/api/auth/google` | ❌ | Legacy/Fallback Google login (ID token verification) |
 | POST | `/api/auth/complete-registration` | ❌ | Submit department/semester after first OAuth |
 | POST | `/api/auth/refresh` | ❌ | Refresh access token |
 | GET | `/api/auth/me` | ✅ | Get current authenticated user |
@@ -425,7 +427,7 @@ Log out and back in → the **👑 Admin** link appears in the navbar → go to 
 | Fuse.js | 7.1 | Client-side fuzzy search re-ranking |
 | Lucide React | 0.344 | Icon set |
 | React Hot Toast | 2.4 | Toast notifications |
-| @react-oauth/google | 0.12 | Google OAuth button |
+| (Built-in Redirect) | — | Secure backend-driven browser redirect |
 
 ### Backend
 | Library | Version | Purpose |

@@ -88,7 +88,7 @@ The Batchmate architecture is separated into frontend and backend applications:
 - React Router DOM for routing
 - Axios for REST API requests
 - Socket.io client for chat and notifications
-- Google OAuth via `@react-oauth/google`
+- Custom browser redirect for Google OAuth (backend-driven)
 - JWT management in `localStorage`
 - Lazy-loaded routes and suspense fallbacks for performance
 
@@ -97,7 +97,7 @@ The Batchmate architecture is separated into frontend and backend applications:
 - Node.js + Express REST API
 - MongoDB + Mongoose data models
 - JWT access + refresh tokens
-- Google OAuth token verification
+- Google OAuth via backend-driven code exchange flow and ID token verification
 - Cloudinary file upload management
 - Socket.io for real-time chat and notifications
 - Joi request validation
@@ -312,8 +312,8 @@ Optional / AI variables:
 
 Required variables:
 
-- `VITE_GOOGLE_CLIENT_ID` — Google OAuth client ID
-- `VITE_API_URL` — optional backend base URL, defaults to `/api`
+- VITE_GOOGLE_CLIENT_ID` — Google OAuth client ID
+- `VITE_API_URL` — Backend API base URL (in Vercel, defaults to `https://batchmate-backend.onrender.com/api` for production, and automatically detects `http://localhost:5000/api` for local development if running on localhost)
 
 ---
 
@@ -350,8 +350,11 @@ Required variables:
 - Ensure the backend URL matches the deployed backend service URL.
 
 ### Render Notes
-- Deploy frontend as a static site and backend as a web service for a clean production setup.
-- `FRONTEND_URL` should be the deployed frontend origin used by backend CORS and Socket.io settings.
+- Deploy frontend as a static site (Vercel) and backend as a web service (Render) for a clean production setup.
+- `FRONTEND_URL` should be the deployed frontend origin (e.g. `https://batchmate-textbook-exchanger.vercel.app`) used by backend CORS and Socket.io settings.
+- Google Cloud Console **Authorized Redirect URIs** MUST be configured as:
+  - Local Dev: `http://localhost:5000/api/auth/google/callback`
+  - Production: `https://batchmate-backend.onrender.com/api/auth/google/callback`
 - Optionally use a `render.yaml` file for multi-service deployment.
 
 ---
@@ -362,7 +365,10 @@ Required variables:
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/api/auth/google` | No | Login with Google OAuth |
+| GET | `/api/auth/google` | No | Redirect to Google OAuth consent page |
+| GET | `/api/auth/google/callback` | No | Handle Google OAuth authorization code callback |
+| POST | `/api/auth/google` | No | Legacy/Fallback Google login (ID token verification) |
+| POST | `/api/auth/complete-registration` | No | Complete registration after Google OAuth |
 | POST | `/api/auth/refresh` | No | Refresh access token |
 | GET | `/api/auth/me` | Yes | Get current authenticated user |
 | POST | `/api/auth/logout` | Yes | Logout user |

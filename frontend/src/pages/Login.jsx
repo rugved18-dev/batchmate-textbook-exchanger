@@ -9,6 +9,7 @@ const Login = () => {
     const navigate = useNavigate()
     const { login } = useAuth()
     const [loading, setLoading] = useState(false)
+    const [loadingMessage, setLoadingMessage] = useState('')
 
     useEffect(() => {
         // Parse token, refreshToken, or error from URL query params (redirect callback)
@@ -22,6 +23,7 @@ const Login = () => {
             window.history.replaceState({}, document.title, window.location.pathname)
         } else if (token && refreshToken) {
             setLoading(true)
+            setLoadingMessage('Verifying credentials...')
             localStorage.setItem('accessToken', token)
             localStorage.setItem('refreshToken', refreshToken)
 
@@ -40,6 +42,7 @@ const Login = () => {
                     localStorage.removeItem('refreshToken')
                 } finally {
                     setLoading(false)
+                    setLoadingMessage('')
                     window.history.replaceState({}, document.title, window.location.pathname)
                 }
             }
@@ -49,6 +52,7 @@ const Login = () => {
 
     const handleGoogleLogin = () => {
         setLoading(true)
+        setLoadingMessage('Redirecting to Google...')
         window.location.href = `${getBackendUrl()}/auth/google`
     }
 
@@ -153,7 +157,7 @@ const Login = () => {
 
                             {loading && (
                                 <div className="mt-4 text-gray-400 text-sm">
-                                    Redirecting to Google...
+                                    {loadingMessage}
                                 </div>
                             )}
                         </div>
