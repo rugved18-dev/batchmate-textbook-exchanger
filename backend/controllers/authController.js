@@ -265,8 +265,19 @@ const logout = asyncHandler(async (req, res) => {
  * Helper to dynamically construct the Google OAuth2 Client
  */
 const getOAuth2Client = (req) => {
-    const redirectUri = process.env.GOOGLE_CALLBACK_URL || 
-        `${process.env.NODE_ENV === 'production' ? 'https' : req.protocol}://${req.get('host')}/api/auth/google/callback`;
+    if (process.env.GOOGLE_CALLBACK_URL) {
+        return new OAuth2Client(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            process.env.GOOGLE_CALLBACK_URL
+        );
+    }
+
+    const host = req.get('host');
+    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
+    const protocol = isLocalhost ? 'http' : 'https';
+    const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+
     return new OAuth2Client(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
