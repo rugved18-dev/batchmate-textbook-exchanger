@@ -281,6 +281,7 @@ const getOAuth2Client = (req) => {
  */
 const googleRedirect = asyncHandler(async (req, res) => {
     const oauth2Client = getOAuth2Client(req);
+    const callbackUrl = oauth2Client.redirectUri;
     
     const authorizeUrl = oauth2Client.generateAuthUrl({
         access_type: 'offline',
@@ -291,6 +292,7 @@ const googleRedirect = asyncHandler(async (req, res) => {
         prompt: 'consent'
     });
     
+    console.log(`[Google OAuth Redirect] Request URL: ${req.originalUrl} | Callback URL: ${callbackUrl} | Authorization URL: ${authorizeUrl}`);
     res.redirect(authorizeUrl);
 });
 
@@ -306,6 +308,7 @@ const googleCallback = asyncHandler(async (req, res) => {
     }
     
     const oauth2Client = getOAuth2Client(req);
+    const callbackUrl = oauth2Client.redirectUri;
     
     // Exchange code for tokens
     let tokens;
@@ -313,7 +316,7 @@ const googleCallback = asyncHandler(async (req, res) => {
         const response = await oauth2Client.getToken(code);
         tokens = response.tokens;
     } catch (error) {
-        console.error('Failed to retrieve Google tokens:', error);
+        console.error('[Google OAuth Callback Error] Failed to retrieve tokens:', error);
         throw new AppError('Failed to retrieve Google tokens', 400);
     }
     
@@ -327,7 +330,7 @@ const googleCallback = asyncHandler(async (req, res) => {
             audience: process.env.GOOGLE_CLIENT_ID
         });
     } catch (error) {
-        console.error('Google token verification error:', error);
+        console.error('[Google OAuth Callback Error] Token verification failed:', error);
         throw new AppError('Invalid Google token in callback', 401);
     }
     
@@ -336,9 +339,16 @@ const googleCallback = asyncHandler(async (req, res) => {
     
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     
+    const isDomainValid = isValidCollegeEmail(email);
+    const extractedDomain = email ? email.trim().toLowerCase().split('@')[1] : '';
+    
+    console.log(`[Google OAuth Callback] Email: ${email} | Domain: ${extractedDomain} | Valid College Email: ${isDomainValid} | Callback URL: ${callbackUrl}`);
+    
     // Verify college email domain (accepts .edu and .ac.in subdomains)
-    if (!isValidCollegeEmail(email)) {
-        return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Please use your college email address (ending with .edu or .ac.in)')}`);
+    if (!isDomainValid) {
+        const redirectUrl = `${frontendUrl}/login?error=${encodeURIComponent('Please use your college email address (ending with .edu or .ac.in)')}`;
+        console.log(`[Google OAuth Callback] Email validation failed. Redirecting to: ${redirectUrl}`);
+        return res.redirect(redirectUrl);
     }
     
     // Find or create user
@@ -348,11 +358,15 @@ const googleCallback = asyncHandler(async (req, res) => {
         // Check if email already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Email already registered with different account')}`);
+            const redirectUrl = `${frontendUrl}/login?error=${encodeURIComponent('Email already registered with different account')}`;
+            console.log(`[Google OAuth Callback] Existing user email mismatch. Redirecting to: ${redirectUrl}`);
+            return res.redirect(redirectUrl);
         }
         
         // Redirect to complete registration
-        return res.redirect(`${frontendUrl}/complete-registration?credential=${encodeURIComponent(tokens.id_token)}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&picture=${encodeURIComponent(picture || '')}`);
+        const redirectUrl = `${frontendUrl}/complete-registration?credential=${encodeURIComponent(tokens.id_token)}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&picture=${encodeURIComponent(picture || '')}`;
+        console.log(`[Google OAuth Callback] New user signup required. Redirecting to: ${redirectUrl}`);
+        return res.redirect(redirectUrl);
     } else {
         // Update user active time
         user.lastActive = new Date();
@@ -365,7 +379,9 @@ const googleCallback = asyncHandler(async (req, res) => {
         const jwtTokens = generateTokenResponse(user._id);
         
         // Redirect to frontend login with tokens
-        return res.redirect(`${frontendUrl}/login?token=${encodeURIComponent(jwtTokens.accessToken)}&refreshToken=${encodeURIComponent(jwtTokens.refreshToken)}`);
+        const redirectUrl = `${frontendUrl}/login?token=${encodeURIComponent(jwtTokens.accessToken)}&refreshToken=${encodeURIComponent(jwtTokens.refreshToken)}`;
+        console.log(`[Google OAuth Callback] Existing user login successful. Redirecting to: ${redirectUrl}`);
+        return res.redirect(redirectUrl);
     }
 });
 

@@ -1,8 +1,13 @@
 import { io } from 'socket.io-client';
+import { getBackendUrl } from './api';
 
-// In dev: connect to same origin → Vite proxies /socket.io → backend:5000 (ws:true in vite.config.js)
-// In prod: set VITE_API_URL to your deployed backend URL
-const SOCKET_URL = import.meta.env.VITE_API_URL || window.location.origin;
+// Dynamically compute the socket connection root URL based on the API URL
+const getSocketUrl = () => {
+    const backendUrl = getBackendUrl();
+    return backendUrl.endsWith('/api') ? backendUrl.slice(0, -4) : backendUrl;
+};
+
+const SOCKET_URL = getSocketUrl();
 
 // Create socket instance but do NOT auto-connect.
 // We manually connect after the user logs in.

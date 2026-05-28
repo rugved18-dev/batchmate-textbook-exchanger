@@ -1,7 +1,14 @@
 import axios from 'axios'
 
+export const getBackendUrl = () => {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:5000/api';
+    }
+    return import.meta.env.VITE_API_URL || '/api';
+};
+
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || '/api',
+    baseURL: getBackendUrl(),
     headers: {
         'Content-Type': 'application/json',
     },
@@ -20,7 +27,7 @@ api.interceptors.request.use(
 )
 
 const refreshClient = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || '/api',
+    baseURL: getBackendUrl(),
     headers: { 'Content-Type': 'application/json' }
 });
 

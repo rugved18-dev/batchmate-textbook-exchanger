@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import api from '../utils/api'
+import api, { getBackendUrl } from '../utils/api'
 import toast from 'react-hot-toast'
 import { BookOpen, FileText, MessageCircle } from 'lucide-react'
 
@@ -49,14 +49,7 @@ const Login = () => {
 
     const handleGoogleLogin = () => {
         setLoading(true)
-        let backendUrl = import.meta.env.VITE_API_URL || ''
-        
-        // If relative (dev proxy), fallback to absolute backend URL on port 5000
-        if (!backendUrl.startsWith('http')) {
-            backendUrl = `${window.location.protocol}//${window.location.hostname}:5000/api`
-        }
-
-        window.location.href = `${backendUrl}/auth/google`
+        window.location.href = `${getBackendUrl()}/auth/google`
     }
 
     return (
