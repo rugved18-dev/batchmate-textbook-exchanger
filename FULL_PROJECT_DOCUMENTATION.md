@@ -45,7 +45,7 @@ npm run dev
 
 The backend runs at:
 
-- `http://localhost:5000`
+- `http://batchmate-backend.onrender.com`
 
 ### 2. Frontend Setup
 
@@ -112,9 +112,8 @@ The Batchmate architecture is separated into frontend and backend applications:
 ### Root
 
 - `README.md` — project overview and quick description
-- `PROJECT_FULL_DOCUMENTATION.md` — this complete reference file
 - `SETUP_GUIDE.md` — step-by-step setup
-- `FULL_PROJECT_DOCUMENTATION.md` — existing documentation summary
+- `FULL_PROJECT_DOCUMENTATION.md` — this complete documentation reference
 - `backend/` — backend API code
 - `frontend/` — frontend application code
 
@@ -315,6 +314,45 @@ Required variables:
 
 - `VITE_GOOGLE_CLIENT_ID` — Google OAuth client ID
 - `VITE_API_URL` — optional backend base URL, defaults to `/api`
+
+---
+
+## Render Deployment Requirements
+
+### Backend Service on Render
+- Use Node.js 18+.
+- Set the start command to `npm start`.
+- Render provides the `PORT` environment variable automatically; the backend uses `process.env.PORT || 5000`.
+- Set `NODE_ENV=production`.
+- Configure these required backend env vars on Render:
+  - `MONGODB_URI`
+  - `GOOGLE_CLIENT_ID`
+  - `GOOGLE_CLIENT_SECRET`
+  - `JWT_SECRET`
+  - `JWT_REFRESH_SECRET`
+  - `CLOUDINARY_CLOUD_NAME`
+  - `CLOUDINARY_API_KEY`
+  - `CLOUDINARY_API_SECRET`
+  - `FRONTEND_URL` (deployed frontend origin)
+  - `RATE_LIMIT_WINDOW_MS`
+  - `RATE_LIMIT_MAX_REQUESTS`
+  - `MAX_FILE_SIZE`
+  - `MAX_IMAGE_SIZE`
+- Use `npm run start` or `node server.js` as the Render service command.
+- The backend is already configured to support reverse-proxy deployment with `trust proxy` enabled in production.
+
+### Frontend Static Site on Render
+- Set the build command to `npm install && npm run build`.
+- Set the publish directory to `dist`.
+- Configure these frontend environment variables on Render:
+  - `VITE_GOOGLE_CLIENT_ID`
+  - `VITE_API_URL=https://<your-backend-service>.onrender.com/api`
+- Ensure the backend URL matches the deployed backend service URL.
+
+### Render Notes
+- Deploy frontend as a static site and backend as a web service for a clean production setup.
+- `FRONTEND_URL` should be the deployed frontend origin used by backend CORS and Socket.io settings.
+- Optionally use a `render.yaml` file for multi-service deployment.
 
 ---
 

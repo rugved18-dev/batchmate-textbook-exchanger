@@ -160,7 +160,7 @@ npm run dev
 Port: 5000
 Environment: development
 MongoDB: Connected
-Server: http://localhost:5000
+Server: http://batchmate-backend.onrender.com
 ```
 
 ### Terminal 2: Frontend
@@ -224,7 +224,7 @@ VITE v5.4.21  ready in 1017 ms
 | Service | URL |
 |---------|-----|
 | Frontend | http://localhost:3000 |
-| Backend API | http://localhost:5000 |
+| Backend API | http://batchmate-backend.onrender.com |
 | Google Console | https://console.cloud.google.com/ |
 | MongoDB Atlas | https://cloud.mongodb.com/ |
 | Cloudinary | https://cloudinary.com/console |
