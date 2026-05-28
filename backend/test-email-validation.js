@@ -1,54 +1,69 @@
-// Test email validation
-const testEmail = 'name.prnno@viit.ac.in';
+// Test the new reusable email validation utility
+const { isValidCollegeEmail } = require('./utils/emailValidator');
 
-// Test 1: User.js regex
-const userRegex = /^[^\s@]+@[^\s@]+\.(edu|ac\.in)$/;
-console.log('User.js regex test:', userRegex.test(testEmail));
-console.log('Expected: true');
+console.log('=== College Email Validator Tests ===\n');
 
-// Test 2: Controller logic
-const isValidCollegeEmail = (email) => {
-    if (!email || typeof email !== 'string') return false;
+const testCases = [
+    // Valid academic domains (.ac.in and .edu)
+    { email: 'rugved.22311342@viit.ac.in', expected: true, desc: 'Valid VIIT college email' },
+    { email: 'student@mit.edu', expected: true, desc: 'Valid MIT college email' },
+    { email: 'abc@college.ac.in', expected: true, desc: 'Valid general ac.in email' },
+    { email: 'student@cs.stanford.edu', expected: true, desc: 'Valid subdomain .edu email' },
+    { email: 'first.last@dept.college.ac.in', expected: true, desc: 'Valid nested subdomain email' },
+    { email: '  student@mit.edu  ', expected: true, desc: 'Email with leading/trailing whitespaces' },
+    { email: 'STUDENT@MIT.EDU', expected: true, desc: 'Uppercase academic email' },
 
-    const emailLower = email.toLowerCase().trim();
-    const atIndex = emailLower.lastIndexOf('@');
+    // Invalid formats
+    { email: 'invalid-email', expected: false, desc: 'No domain or @' },
+    { email: 'student@', expected: false, desc: 'Missing domain' },
+    { email: '@mit.edu', expected: false, desc: 'Missing local part' },
+    { email: 'student@mit@edu', expected: false, desc: 'Multiple @ signs' },
 
-    if (atIndex === -1 || atIndex === emailLower.length - 1) return false;
+    // Blocked personal providers
+    { email: 'user@gmail.com', expected: false, desc: 'Blocked Gmail' },
+    { email: 'user@yahoo.com', expected: false, desc: 'Blocked Yahoo' },
+    { email: 'user@yahoo.co.in', expected: false, desc: 'Blocked Yahoo regional' },
+    { email: 'user@outlook.com', expected: false, desc: 'Blocked Outlook' },
+    { email: 'user@hotmail.com', expected: false, desc: 'Blocked Hotmail' },
+    { email: 'user@live.com', expected: false, desc: 'Blocked Live' },
+    { email: 'user@icloud.com', expected: false, desc: 'Blocked iCloud' },
+    { email: 'user@protonmail.com', expected: false, desc: 'Blocked ProtonMail' },
+    { email: 'user@aol.com', expected: false, desc: 'Blocked AOL' },
+    { email: 'user@rediffmail.com', expected: false, desc: 'Blocked Rediffmail' },
+    { email: 'user@mail.gmail.com', expected: false, desc: 'Blocked Gmail subdomain' },
 
-    const domain = emailLower.substring(atIndex + 1);
-    console.log('Extracted domain:', domain);
-    console.log('Domain length:', domain.length);
-    console.log('Domain charCodes:', [...domain].map(c => c.charCodeAt(0)));
-    console.log('Ends with .ac.in?', domain.endsWith('.ac.in'));
-    console.log('Ends with ac.in?', domain.endsWith('ac.in'));
-
-    const blockedDomains = [
-        'gmail.com', 'yahoo.com', 'yahoo.co.in', 'outlook.com', 'hotmail.com',
-        'live.com', 'icloud.com', 'protonmail.com', 'aol.com', 'rediffmail.com'
-    ];
-    if (blockedDomains.includes(domain)) {
-        console.log('Domain is blocked');
-        return false;
-    }
-
-    const result = domain.endsWith('.edu') || domain.endsWith('.ac.in');
-    console.log('Domain ends with .edu or .ac.in:', result);
-    return result;
-};
-
-console.log('\nController validation test:', isValidCollegeEmail(testEmail));
-console.log('Expected: true');
-
-// Test other emails
-console.log('\n--- Testing other emails ---');
-const testEmails = [
-    'user@gmail.com',
-    'student@stanford.edu',
-    'test@iitb.ac.in',
-    'user@cs.mit.edu',
-    'name@ac.in'
+    // Other non-academic domains
+    { email: 'user@github.com', expected: false, desc: 'Non-academic commercial domain' },
+    { email: 'student@mit.edu.com', expected: false, desc: 'Ends with .com instead of .edu' },
+    { email: 'student@college.ac.in.org', expected: false, desc: 'Ends with .org instead of .in' }
 ];
 
-testEmails.forEach(email => {
-    console.log(`${email}: regex=${userRegex.test(email)}, controller=${isValidCollegeEmail(email)}`);
+let passed = 0;
+let failed = 0;
+
+testCases.forEach((tc, index) => {
+    console.log(`Test #${index + 1}: ${tc.desc}`);
+    console.log(`Input: "${tc.email}"`);
+    
+    const result = isValidCollegeEmail(tc.email);
+    const success = result === tc.expected;
+
+    if (success) {
+        console.log('Result: PASS\n');
+        passed++;
+    } else {
+        console.error(`Result: FAIL (Got ${result}, Expected ${tc.expected})\n`);
+        failed++;
+    }
 });
+
+console.log('=== Test Summary ===');
+console.log(`Total Tests Run: ${testCases.length}`);
+console.log(`Passed: ${passed}`);
+if (failed > 0) {
+    console.error(`Failed: ${failed}`);
+    process.exit(1);
+} else {
+    console.log('All tests passed successfully!');
+    process.exit(0);
+}

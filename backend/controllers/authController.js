@@ -2,54 +2,9 @@ const { OAuth2Client } = require('google-auth-library');
 const { User } = require('../models');
 const { generateTokenResponse } = require('../utils/jwt');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
+const { isValidCollegeEmail } = require('../utils/emailValidator');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-/**
- * Validate if email is from an academic institution
- * Accepts any email whose domain ENDS WITH .edu or .ac.in (including subdomains)
- * Examples: user@stanford.edu, name@viit.ac.in, student@cs.university.edu
- * @param {string} email - Email address to validate
- * @returns {boolean} True if valid college email
- */
-const isValidCollegeEmail = (email) => {
-    console.log('[EMAIL VALIDATION] Testing email:', email);
-
-    if (!email || typeof email !== 'string') {
-        console.log('[EMAIL VALIDATION] Failed: Invalid input type');
-        return false;
-    }
-
-    const emailLower = email.toLowerCase().trim();
-    const atIndex = emailLower.lastIndexOf('@');
-
-    // Must have @ and domain part
-    if (atIndex === -1 || atIndex === emailLower.length - 1) {
-        console.log('[EMAIL VALIDATION] Failed: No @ or no domain');
-        return false;
-    }
-
-    const domain = emailLower.substring(atIndex + 1);
-    console.log('[EMAIL VALIDATION] Extracted domain:', domain);
-
-    // Reject known non-academic domains
-    const blockedDomains = [
-        'gmail.com', 'yahoo.com', 'yahoo.co.in', 'outlook.com', 'hotmail.com',
-        'live.com', 'icloud.com', 'protonmail.com', 'aol.com', 'rediffmail.com'
-    ];
-    if (blockedDomains.includes(domain)) {
-        console.log('[EMAIL VALIDATION] Failed: Blocked domain');
-        return false;
-    }
-
-    // Accept if domain ends with .edu or .ac.in
-    const isValid = domain.endsWith('.edu') || domain.endsWith('.ac.in');
-    console.log('[EMAIL VALIDATION] Ends with .edu?', domain.endsWith('.edu'));
-    console.log('[EMAIL VALIDATION] Ends with .ac.in?', domain.endsWith('.ac.in'));
-    console.log('[EMAIL VALIDATION] Final result:', isValid);
-
-    return isValid;
-};
 
 /**
  * Authentication Controller

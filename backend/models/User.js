@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { isValidCollegeEmail } = require('../utils/emailValidator');
 
 /**
  * User Schema
@@ -18,11 +19,9 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true,
         lowercase: true,
+        trim: true,
         validate: {
-            validator: function (v) {
-                // Must be a college email (e.g., .edu, .ac.in, etc.)
-                return /^[^\s@]+@[^\s@]+\.(edu|ac\.in)$/.test(v);
-            },
+            validator: isValidCollegeEmail,
             message: 'Must be a valid college email address (ending with .edu or .ac.in)'
         },
         index: true
