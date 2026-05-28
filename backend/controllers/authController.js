@@ -42,6 +42,13 @@ const googleLogin = asyncHandler(async (req, res) => {
     const payload = ticket.getPayload();
     const { sub: googleId, email, name, picture } = payload;
 
+    // Temp Debug Logging
+    console.log("OAuth profile:", payload);
+    console.log("OAuth email:", email);
+    console.log("Trimmed email:", email?.trim());
+    console.log("Extracted domain:", email ? email.trim().toLowerCase().split('@')[1] : '');
+    console.log("Validation result:", isValidCollegeEmail(email));
+
     // Verify college email domain (accepts .edu and .ac.in subdomains)
     if (!isValidCollegeEmail(email)) {
         throw new AppError('Please use your college email address (ending with .edu or .ac.in) to sign up', 403);
@@ -135,6 +142,13 @@ const completeRegistration = asyncHandler(async (req, res) => {
 
     const payload = ticket.getPayload();
     const { sub: googleId, email, name, picture } = payload;
+
+    // Temp Debug Logging
+    console.log("OAuth profile:", payload);
+    console.log("OAuth email:", email);
+    console.log("Trimmed email:", email?.trim());
+    console.log("Extracted domain:", email ? email.trim().toLowerCase().split('@')[1] : '');
+    console.log("Validation result:", isValidCollegeEmail(email));
 
     // Verify college email domain (accepts .edu and .ac.in subdomains)
     if (!isValidCollegeEmail(email)) {
